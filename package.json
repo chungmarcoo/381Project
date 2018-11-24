@@ -1,0 +1,19 @@
+{
+    "name": "server",
+    "description": "381 Project Assignment",
+    "author": "CHEUNG KA CHUNG",
+    "version": "0.0.1",
+    "dependencies": {
+        "body-parser": "*",
+        "cookie-session": "*",
+        "ejs": "*",
+        "express": "*",
+        "mime-types": "^2.1.21",
+        "mongodb": "^2.2.31",
+        "mongoose": "^5.3.13"
+    },
+    "engine": "node >= 0.10.0",
+    "scripts": {
+        "start": "node server"
+    }
+}
