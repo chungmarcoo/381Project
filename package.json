@@ -4,10 +4,10 @@
     "author": "CHEUNG KA CHUNG",
     "version": "0.0.1",
     "dependencies": {
-        "body-parser": "*",
         "cookie-session": "*",
         "ejs": "*",
         "express": "*",
+        "formidable": "^1.2.1",
         "mime-types": "^2.1.21",
         "mongodb": "^2.2.31",
         "mongoose": "^5.3.13"

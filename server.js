@@ -12,6 +12,9 @@ var crypto = require('crypto')
 var mongoose = require('mongoose')
 var Schema = mongoose.Schema
 var mime = require('mime-types')
+var fs = require('fs')
+var formidable = require('formidable')
+var util = require('util')
 
 var restaurantSchema = new Schema({
 	restaurant_id: Number,
@@ -34,6 +37,7 @@ var restaurantSchema = new Schema({
 })
 
 app = express()
+
 app.set('view engine', 'ejs')
 
 var SECRETKEY1 = crypto.randomBytes(64).toString('hex')
@@ -58,6 +62,69 @@ app.get('/', function (req, res) {
 		res.render('secrets', { name: req.session.username })
 	}
 })
+
+app.get('/read', function (req, res) {
+	MongoClient.connect(mongourl, function (err, db) {
+		assert.equal(err, null)
+		console.log('Connected to MongoDB\n')
+		findRestaurants(db, function (restaurants) {
+			db.close()
+			console.log('Disconnected MongoDB\n')
+			res.writeHead(200, { "Content-Type": "text/html" })
+			res.write('<html><head><title>Restaurant</title></head>')
+			res.write('<body><H1>Restaurants</H1>')
+			res.write('<H2>Showing ' + restaurants.length + ' document(s)</H2>')
+			res.write('<ol>')
+			for (var i in restaurants) {
+				var _id = restaurants[i]._id
+				res.write('<li><a href="/display?_id=' + _id + '">' + restaurants[i].name + '</a></li>')
+			}
+			res.write('</ol>')
+			res.end('</body></html>')
+			return (restaurants)
+		})
+	})
+})
+
+app.get('/display', function (req, res) {
+	var _id = req.query._id
+	var ObjectId = require('mongodb').ObjectId       
+	var o_id = new ObjectId(_id)
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		db.collection("restaurants").findOne({_id: o_id}, function (err, result) {
+			if (!err) {
+				if (result) {
+					var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
+					var photo = new Buffer(result.photo,'base64')
+					console.log(photo)
+					db.close()
+					res.writeHead(200, { "Content-Type": "text/html" })
+					res.write('<html><head><title>' + result.name + '</title></head>')
+					res.write('<body><H1>' + result.name + '</H1>')
+					res.write('<img src="' +  photoMimetype + photo + '"/>')
+					res.end('</body></html>')
+				} else {
+					console.log('no result')
+				}
+			}
+			db.close()
+		})
+	})
+})
+
+function findRestaurants(db,callback) {
+	var restaurants = [];
+	cursor = db.collection('restaurants').find(); 
+	cursor.each(function(err, doc) {
+		assert.equal(err, null); 
+		if (doc != null) {
+			restaurants.push(doc);
+		} else {
+			callback(restaurants); 
+		}
+	});
+}
 
 app.get('/login', function (req, res) {
 	res.sendFile(__dirname + '/public/login.html')
@@ -131,15 +198,18 @@ app.post('/create', function (req, res) {
 	var photo = req.body.photo
 	var photoMimetype = mime.lookup(photo)
 
-	console.log(mime.lookup(photo))
 	db.on('error', console.error.bind(console, 'connection error:'));
 	db.once('open', function (callback) {
 		var Restaurant = mongoose.model('Restaurant', restaurantSchema)
-		var newRestaurant = new Restaurant({ name: name, borough: borough,
-			cuisine: cuisine, photo: photo, photoMimetype: photoMimetype, address:[{street: street, building: building,
-			zipcode: zipcode, coord: [{lat: lat, lon: lon}]}], owner:  req.session.username})
-		
-			newRestaurant.validate(function (err) {
+		var newRestaurant = new Restaurant({
+			name: name, borough: borough,
+			cuisine: cuisine, photo: photo, photoMimetype: photoMimetype, address: [{
+				street: street, building: building,
+				zipcode: zipcode, coord: [{ lat: lat, lon: lon }]
+			}], owner: req.session.username
+		})
+
+		newRestaurant.validate(function (err) {
 			console.log(err)
 		})
 
@@ -150,7 +220,6 @@ app.post('/create', function (req, res) {
 		})
 	})
 })
-
 
 app.get('/logout', function (req, res) {
 	req.session = null
