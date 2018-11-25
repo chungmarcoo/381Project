@@ -3,7 +3,7 @@ var session = require('cookie-session')
 var bodyParser = require('body-parser')
 var app = express()
 var http = require('http')
-// var url = require('url')
+var url = require('url')
 var MongoClient = require('mongodb').MongoClient
 var assert = require('assert')
 var ObjectId = require('mongodb').ObjectID
@@ -55,7 +55,7 @@ app.use(express.static('public'))
 
 app.get('/', function (req, res) {
 	console.log(req.session)
-	if (!req.session.username) {
+	if (!req.session.username && !req.session.authenticated) {
 		res.redirect('/login')
 	} else {
 		res.status(200)
@@ -88,21 +88,22 @@ app.get('/read', function (req, res) {
 
 app.get('/display', function (req, res) {
 	var _id = req.query._id
-	var ObjectId = require('mongodb').ObjectId       
+	var ObjectId = require('mongodb').ObjectId
 	var o_id = new ObjectId(_id)
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
-		db.collection("restaurants").findOne({_id: o_id}, function (err, result) {
+		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
 				if (result) {
+					// console.log(result)
 					var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
-					var photo = new Buffer(result.photo,'base64')
+					var photo = new Buffer(result.photo, 'base64')
 					console.log(photo)
 					db.close()
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
 					res.write('<body><H1>' + result.name + '</H1>')
-					res.write('<img src="' +  photoMimetype + photo + '"/>')
+					res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 80%; height: 59%; margin: auto; object-fit: contain;"/>')
 					res.end('</body></html>')
 				} else {
 					console.log('no result')
@@ -113,15 +114,15 @@ app.get('/display', function (req, res) {
 	})
 })
 
-function findRestaurants(db,callback) {
+function findRestaurants(db, callback) {
 	var restaurants = [];
-	cursor = db.collection('restaurants').find(); 
-	cursor.each(function(err, doc) {
-		assert.equal(err, null); 
+	cursor = db.collection('restaurants').find();
+	cursor.each(function (err, doc) {
+		assert.equal(err, null);
 		if (doc != null) {
 			restaurants.push(doc);
 		} else {
-			callback(restaurants); 
+			callback(restaurants);
 		}
 	});
 }
@@ -184,41 +185,95 @@ app.post('/register', function (req, res) {
 	})
 })
 
+// app.post('/create', function (req, res) {
+// 	mongoose.connect(mongourl)
+// 	var db = mongoose.connection
+// 	var name = req.body.name
+// 	var borough = req.body.borough
+// 	var cuisine = req.body.cuisine
+// 	var street = req.body.street
+// 	var building = req.body.building
+// 	var zipcode = req.body.zipcode
+// 	var lat = req.body.lat
+// 	var lon = req.body.lon
+// 	var photo = req.body.photo
+// 	var photoMimetype = mime.lookup(photo)
+
+// 	db.on('error', console.error.bind(console, 'connection error:'));
+// 	db.once('open', function (callback) {
+// 		var Restaurant = mongoose.model('Restaurant', restaurantSchema)
+// 		var newRestaurant = new Restaurant({
+// 			name: name, borough: borough,
+// 			cuisine: cuisine, photo: photo, photoMimetype: photoMimetype, address: [{
+// 				street: street, building: building,
+// 				zipcode: zipcode, coord: [{ lat: lat, lon: lon }]
+// 			}], owner: req.session.username
+// 		})
+
+// 		newRestaurant.validate(function (err) {
+// 			console.log(err)
+// 		})
+
+// 		newRestaurant.save(function (err) {
+// 			if (err) throw err
+// 			console.log('new restaurant created!')
+// 			db.close()
+// 		})
+// 	})
+// })
+
 app.post('/create', function (req, res) {
-	mongoose.connect(mongourl)
-	var db = mongoose.connection
-	var name = req.body.name
-	var borough = req.body.borough
-	var cuisine = req.body.cuisine
-	var street = req.body.street
-	var building = req.body.building
-	var zipcode = req.body.zipcode
-	var lat = req.body.lat
-	var lon = req.body.lon
-	var photo = req.body.photo
-	var photoMimetype = mime.lookup(photo)
+	if (req.url == '/create' && req.method.toLowerCase() == 'post') {
+		var form = new formidable.IncomingForm()
+		form.parse(req, function (err, fields, files) {
+			// console.log('fields', fields)
+			// console.log('files', files)
+			mongoose.connect(mongourl)
+			var db = mongoose.connection
+			var name = fields.name
+			var borough = fields.borough
+			var cuisine = fields.cuisine
+			var street = fields.street
+			var building = fields.building
+			var zipcode = fields.zipcode
+			var lat = fields.lat
+			var lon = fields.lon
+			var photo
 
-	db.on('error', console.error.bind(console, 'connection error:'));
-	db.once('open', function (callback) {
-		var Restaurant = mongoose.model('Restaurant', restaurantSchema)
-		var newRestaurant = new Restaurant({
-			name: name, borough: borough,
-			cuisine: cuisine, photo: photo, photoMimetype: photoMimetype, address: [{
-				street: street, building: building,
-				zipcode: zipcode, coord: [{ lat: lat, lon: lon }]
-			}], owner: req.session.username
-		})
+			var filepath = files.photo.path
+			if (files.photo.type) {
+				var photoMimetype = files.photo.type;
+			}
+			fs.readFile(filepath, function(err,data) {
+				photo = new Buffer(data).toString('base64')
+			})
 
-		newRestaurant.validate(function (err) {
-			console.log(err)
+			db.on('error', console.error.bind(console, 'connection error:'))
+			db.once('open', function (callback) {
+				var Restaurant = mongoose.model('Restaurant', restaurantSchema)
+				var newRestaurant = new Restaurant({
+					name: name, borough: borough,
+					cuisine: cuisine, photo: photo, photoMimetype: photoMimetype, address: [{
+						street: street, building: building,
+						zipcode: zipcode, coord: [{ lat: lat, lon: lon }]
+					}], owner: req.session.username
+				})
+		
+				newRestaurant.validate(function (err) {
+					console.log(err)
+				})
+		
+				newRestaurant.save(function (err) {
+					if (err) throw err
+					console.log('new restaurant created!')
+					db.close()
+					res.redirect('/read')
+				})
+			})
+			
 		})
-
-		newRestaurant.save(function (err) {
-			if (err) throw err
-			console.log('new restaurant created!')
-			db.close()
-		})
-	})
+		return
+	}
 })
 
 app.get('/logout', function (req, res) {
