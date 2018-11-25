@@ -54,7 +54,7 @@ app.use(bodyParser.json())
 app.use(express.static('public'))
 
 app.get('/', function (req, res) {
-	console.log(req.session)
+	// console.log(req.session)
 	if (!req.session.username && !req.session.authenticated) {
 		res.redirect('/login')
 	} else {
@@ -64,26 +64,31 @@ app.get('/', function (req, res) {
 })
 
 app.get('/read', function (req, res) {
-	MongoClient.connect(mongourl, function (err, db) {
-		assert.equal(err, null)
-		console.log('Connected to MongoDB\n')
-		findRestaurants(db, function (restaurants) {
-			db.close()
-			console.log('Disconnected MongoDB\n')
-			res.writeHead(200, { "Content-Type": "text/html" })
-			res.write('<html><head><title>Restaurant</title></head>')
-			res.write('<body><H1>Restaurants</H1>')
-			res.write('<H2>Showing ' + restaurants.length + ' document(s)</H2>')
-			res.write('<ol>')
-			for (var i in restaurants) {
-				var _id = restaurants[i]._id
-				res.write('<li><a href="/display?_id=' + _id + '">' + restaurants[i].name + '</a></li>')
-			}
-			res.write('</ol>')
-			res.end('</body></html>')
-			return (restaurants)
+	if (!req.session.username && !req.session.authenticated) {
+		res.redirect('/login')
+	} else {
+		MongoClient.connect(mongourl, function (err, db) {
+			assert.equal(err, null)
+			console.log('Connected to MongoDB\n')
+			findRestaurants(db, function (restaurants) {
+				db.close()
+				console.log('Disconnected MongoDB\n')
+				res.writeHead(200, { "Content-Type": "text/html" })
+				res.write('<html><head><title>Restaurant</title></head>')
+				res.write('<body><H1>Restaurants</H1>')
+				res.write('<H2>Showing ' + restaurants.length + ' document(s)</H2>')
+				res.write('<ol>')
+				for (var i in restaurants) {
+					var _id = restaurants[i]._id
+					res.write('<li><a href="/display?_id=' + _id + '">' + restaurants[i].name + '</a></li>')
+				}
+				res.write('</ol>')
+				res.end('</body></html>')
+				return (restaurants)
+			})
 		})
-	})
+	}
+
 })
 
 app.get('/display', function (req, res) {
@@ -98,7 +103,6 @@ app.get('/display', function (req, res) {
 					// console.log(result)
 					var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
 					var photo = new Buffer(result.photo, 'base64')
-					console.log(photo)
 					db.close()
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
@@ -136,7 +140,11 @@ app.get('/register', function (req, res) {
 })
 
 app.get('/create', function (req, res) {
-	res.sendFile(__dirname + '/public/create.html')
+	if (!req.session.username && !req.session.authenticated) {
+		res.redirect('/login')
+	} else {
+		res.sendFile(__dirname + '/public/create.html')
+	}
 })
 
 app.post('/login', function (req, res) {
@@ -145,13 +153,18 @@ app.post('/login', function (req, res) {
 	var userInfo = { username: usernameInput, password: passwordInput }
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
+		if (!usernameInput || !passwordInput) {
+			console.log('invalid username or password')
+			res.redirect('/')
+			return
+		}
 		db.collection("users").findOne(userInfo, function (err, result) {
 			if (!err) {
 				if (result) {
 					console.log('login success')
 					req.session.authenticated = true
 					req.session.username = result.username
-					res.redirect('/')
+					res.redirect('/read')
 				} else {
 					console.log('invalid username or password')
 					res.redirect('/')
@@ -185,43 +198,6 @@ app.post('/register', function (req, res) {
 	})
 })
 
-// app.post('/create', function (req, res) {
-// 	mongoose.connect(mongourl)
-// 	var db = mongoose.connection
-// 	var name = req.body.name
-// 	var borough = req.body.borough
-// 	var cuisine = req.body.cuisine
-// 	var street = req.body.street
-// 	var building = req.body.building
-// 	var zipcode = req.body.zipcode
-// 	var lat = req.body.lat
-// 	var lon = req.body.lon
-// 	var photo = req.body.photo
-// 	var photoMimetype = mime.lookup(photo)
-
-// 	db.on('error', console.error.bind(console, 'connection error:'));
-// 	db.once('open', function (callback) {
-// 		var Restaurant = mongoose.model('Restaurant', restaurantSchema)
-// 		var newRestaurant = new Restaurant({
-// 			name: name, borough: borough,
-// 			cuisine: cuisine, photo: photo, photoMimetype: photoMimetype, address: [{
-// 				street: street, building: building,
-// 				zipcode: zipcode, coord: [{ lat: lat, lon: lon }]
-// 			}], owner: req.session.username
-// 		})
-
-// 		newRestaurant.validate(function (err) {
-// 			console.log(err)
-// 		})
-
-// 		newRestaurant.save(function (err) {
-// 			if (err) throw err
-// 			console.log('new restaurant created!')
-// 			db.close()
-// 		})
-// 	})
-// })
-
 app.post('/create', function (req, res) {
 	if (req.url == '/create' && req.method.toLowerCase() == 'post') {
 		var form = new formidable.IncomingForm()
@@ -244,7 +220,7 @@ app.post('/create', function (req, res) {
 			if (files.photo.type) {
 				var photoMimetype = files.photo.type;
 			}
-			fs.readFile(filepath, function(err,data) {
+			fs.readFile(filepath, function (err, data) {
 				photo = new Buffer(data).toString('base64')
 			})
 
@@ -258,11 +234,11 @@ app.post('/create', function (req, res) {
 						zipcode: zipcode, coord: [{ lat: lat, lon: lon }]
 					}], owner: req.session.username
 				})
-		
+
 				newRestaurant.validate(function (err) {
 					console.log(err)
 				})
-		
+
 				newRestaurant.save(function (err) {
 					if (err) throw err
 					console.log('new restaurant created!')
@@ -270,7 +246,7 @@ app.post('/create', function (req, res) {
 					res.redirect('/read')
 				})
 			})
-			
+
 		})
 		return
 	}
