@@ -40,8 +40,8 @@ app = express()
 
 app.set('view engine', 'ejs')
 
-var SECRETKEY1 = crypto.randomBytes(64).toString('hex')
-var SECRETKEY2 = crypto.randomBytes(64).toString('hex')
+var SECRETKEY1 = 'I GO TO BY BUS'
+var SECRETKEY2 = 'XYZ'
 
 app.set('view engine', 'ejs')
 
@@ -54,8 +54,8 @@ app.use(bodyParser.json())
 app.use(express.static('public'))
 
 app.get('/', function (req, res) {
-	// console.log(req.session)
-	if (!req.session.username && !req.session.authenticated) {
+	console.log(req.session)
+	if (!req.session.authenticated) {
 		res.redirect('/login')
 	} else {
 		res.status(200)
@@ -64,7 +64,8 @@ app.get('/', function (req, res) {
 })
 
 app.get('/read', function (req, res) {
-	if (!req.session.username && !req.session.authenticated) {
+	console.log(req.session)
+	if (!req.session.authenticated) {
 		res.redirect('/login')
 	} else {
 		MongoClient.connect(mongourl, function (err, db) {
@@ -124,9 +125,9 @@ app.get('/display', function (req, res) {
 					}
 					res.write('<p>Created by: ' + result.owner + '</p>')
 					res.write('<div style="display: flex; justify-content: space-around; width: 25%;"><a href=""><button>Rate</button></a>')
-					res.write('<a href=""><button>Edit</button></a>')
+					res.write('<a href="/edit?_id=' + result._id + '"><button>Edit</button></a>')
 					res.write('<a href="/delete?_id=' + result._id + '"><button>Delete</button></a>')
-					res.write('<a href=""><button>Go back</button></a>')
+					res.write('<a href="/read"><button>Go back</button></a>')
 					res.end('</body></html>')
 				} else {
 					console.log('no result')
@@ -150,20 +151,65 @@ app.get('/delete', function (req, res) {
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + 'delete' + '</title></head>')
 					res.write('<body><H1>' + 'delete success!' + '</H1>')
+					res.write('<a href="/read"><button>Go back home</button></a>')
 					res.end('</body></html>')
-					res.redirect('/read')
 				} else {
 					console.log('no result')
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + 'delete' + '</title></head>')
 					res.write('<body><H1>' + 'delete failed!' + '</H1>')
+					res.write('<a href="/read"><button>Go back home</button></a>')
 					res.end('</body></html>')
-					res.redirect('/read')
 				}
 			}
 			db.close()
 		})
 	})
+})
+
+app.get('/edit', function (req, res) {
+	var _id = req.query._id
+	var ObjectId = require('mongodb').ObjectId
+	var o_id = new ObjectId(_id)
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
+			if (!err) {
+				if (result) {
+					// console.log(result)
+					var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
+					var photo = new Buffer(result.photo, 'base64')
+					db.close()
+					res.writeHead(200, { "Content-Type": "text/html" })
+					res.write('<html><head><title>' + result.name + '</title></head>')
+					res.write('<body><H1>' + 'Edit ' + result.name + '</H1>')
+					res.write('<form action="/edit" enctype="multipart/form-data" method="post">')
+					res.write('name: <input type="text" name="name" value="' + result.name + '"><br>')
+					res.write('borough: <input type="text" name="name" value="' + result.borough + '"><br>')
+					res.write('borough: <input type="text" name="borough" value="' + result.borough + '"><br>')
+					res.write('cuisine: <input type="text" name="cuisine" value="' + result.cuisine + '"><br>')
+					res.write('street: <input type="text" name="street" value="' + result.address.street + '"><br>')
+					res.write('building: <input type="text" name="building" value="' + result.address.building + '"><br>')
+					res.write('zipcode: <input type="text" name="zipcode" value="' + result.address.zipcode + '"><br>')
+					res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
+					res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
+					if (result.photo) {
+						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
+					}
+					res.write('</form>')
+					res.write('<a href="edit?_id' + result._id + '"<button>Save</button></a>')
+					res.end('</body></html>')
+				} else {
+					console.log('no result')
+				}
+			}
+			db.close()
+		})
+	})
+})
+
+app.post('/edit', function (req, res) {
+	console.log(req.query._id)
 })
 
 function findRestaurants(db, callback) {
