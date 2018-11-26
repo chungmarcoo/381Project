@@ -75,8 +75,10 @@ app.get('/read', function (req, res) {
 				console.log('Disconnected MongoDB\n')
 				res.writeHead(200, { "Content-Type": "text/html" })
 				res.write('<html><head><title>Restaurant</title></head>')
-				res.write('<body><H1>Restaurants</H1>')
-				res.write('<H2>Showing ' + restaurants.length + ' document(s)</H2>')
+				res.write('<body><h1>Restaurants</h1>')
+				res.write('<h2>User: ' + req.session.username + '</h2>')
+				res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
+				res.write('<a href="/create"><button>Create New Restaurant</button></a>')
 				res.write('<ol>')
 				for (var i in restaurants) {
 					var _id = restaurants[i]._id
@@ -107,10 +109,56 @@ app.get('/display', function (req, res) {
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
 					res.write('<body><H1>' + result.name + '</H1>')
-					res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 80%; height: 59%; margin: auto; object-fit: contain;"/>')
+					if (result.photo) {
+						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
+					}
+					res.write('<p>Borough: ' + result.borough + '</p>')
+					res.write('<p>Cuisine: ' + result.cuisine + '</p>')
+					res.write('<p>Street: ' + result.address.street + '</p>')
+					res.write('<p>Building: ' + result.address.building + '</p>')
+					res.write('<p>Zipcode: ' + result.address.zipcode + '</p>')
+					if (result.address[0].coord[0].lat && result.address[0].coord[0].lon) {
+						res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
+						res.write('<p>GPS Lon: ' + result.address[0].coord[0].lat + '</p>')
+						res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
+					}
+					res.write('<p>Created by: ' + result.owner + '</p>')
+					res.write('<div style="display: flex; justify-content: space-around; width: 25%;"><a href=""><button>Rate</button></a>')
+					res.write('<a href=""><button>Edit</button></a>')
+					res.write('<a href="/delete?_id=' + result._id + '"><button>Delete</button></a>')
+					res.write('<a href=""><button>Go back</button></a>')
 					res.end('</body></html>')
 				} else {
 					console.log('no result')
+				}
+			}
+			db.close()
+		})
+	})
+})
+
+app.get('/delete', function (req, res) {
+	var _id = req.query._id
+	var ObjectId = require('mongodb').ObjectId
+	var o_id = new ObjectId(_id)
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		db.collection("restaurants").remove({ _id: o_id }, function (err, result) {
+			if (!err) {
+				if (result) {
+					console.log('delete success!')
+					res.writeHead(200, { "Content-Type": "text/html" })
+					res.write('<html><head><title>' + 'delete' + '</title></head>')
+					res.write('<body><H1>' + 'delete success!' + '</H1>')
+					res.end('</body></html>')
+					res.redirect('/read')
+				} else {
+					console.log('no result')
+					res.writeHead(200, { "Content-Type": "text/html" })
+					res.write('<html><head><title>' + 'delete' + '</title></head>')
+					res.write('<body><H1>' + 'delete failed!' + '</H1>')
+					res.end('</body></html>')
+					res.redirect('/read')
 				}
 			}
 			db.close()
@@ -153,7 +201,7 @@ app.post('/login', function (req, res) {
 	var userInfo = { username: usernameInput, password: passwordInput }
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
-		if (!usernameInput || !passwordInput) {
+		if (!usernameInput) {
 			console.log('invalid username or password')
 			res.redirect('/')
 			return
@@ -209,7 +257,7 @@ app.post('/create', function (req, res) {
 			var name = fields.name
 			var borough = fields.borough
 			var cuisine = fields.cuisine
-			var street = fields.street
+			var street = fields.streettreet = null
 			var building = fields.building
 			var zipcode = fields.zipcode
 			var lat = fields.lat
