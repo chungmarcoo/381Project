@@ -103,7 +103,7 @@ app.get('/display', function (req, res) {
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
 				if (result) {
-					console.log(result)
+					// console.log(result)
 					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
 					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
@@ -118,12 +118,13 @@ app.get('/display', function (req, res) {
 					res.write('<p>Street: ' + result.address[0].street + '</p>')
 					res.write('<p>Building: ' + result.address[0].building + '</p>')
 					res.write('<p>Zipcode: ' + result.address[0].zipcode + '</p>')
-					console.log(result.address[0])
-					console.log(result.address[0].coord[0])
 					if ((result.address[0].coord[0].lat !== null) || (result.address[0].coord[0].lon !== null)) {
 						res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
-						res.write('<p>GPS Lon: ' + result.address[0].coord[0].lat + '</p>')
-						res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
+						res.write('<p>GPS Lon: ' + result.address[0].coord[0].lon + '</p>')
+						// res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
+						// TODO: google map button not appearing
+						// console.log(result.address[0].coord[0].lat, result.address[0].coord[0].lon)
+						res.write('<a href="/map?lat=' + result.address[0].coord[0].lat + '&lon=' + result.address[0].coord[0].lon + '"><button>Google Map</button></a>')
 					}
 					res.write('<p>Created by: ' + result.owner + '</p>')
 					res.write('<div style="display: flex; justify-content: space-around; width: 25%;"><a href=""><button>Rate</button></a>')
@@ -138,6 +139,11 @@ app.get('/display', function (req, res) {
 			db.close()
 		})
 	})
+})
+
+app.get('/map', function (req, res){
+	res.status(200)
+	res.render('gmap', { lat: req.query.lat, lon: req.query.lon })		
 })
 
 app.get('/delete', function (req, res) {
@@ -222,9 +228,7 @@ app.post('/edit', function (req, res) {
 		db.collection('restaurants').update(
 			{ _id: o_id },
 			{
-			   name: "Andy",
-			   rating: 1,
-			   score: 1
+			   name: 'test',
 			},
 			{ upsert: true },
 			function (err, result) {
