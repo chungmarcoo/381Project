@@ -103,7 +103,8 @@ app.get('/display', function (req, res) {
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
 				if (result) {
-					// console.log(result)
+					console.log(result)
+					console.log(typeof result)
 					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
 					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
@@ -142,8 +143,11 @@ app.get('/display', function (req, res) {
 })
 
 app.get('/map', function (req, res){
-	res.status(200)
-	res.render('gmap', { lat: req.query.lat, lon: req.query.lon })		
+	res.render('gmap', { 
+		lat: req.query.lat, 
+		lon: req.query.lon 
+	})	
+	res.end()
 })
 
 app.get('/delete', function (req, res) {
