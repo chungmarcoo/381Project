@@ -8,7 +8,6 @@ var MongoClient = require('mongodb').MongoClient
 var assert = require('assert')
 var ObjectId = require('mongodb').ObjectID
 var mongourl = 'mongodb://project:project1234@ds245532.mlab.com:45532/chung_marco'
-var crypto = require('crypto')
 var mongoose = require('mongoose')
 var Schema = mongoose.Schema
 var mime = require('mime-types')
@@ -59,7 +58,8 @@ app.get('/', function (req, res) {
 		res.redirect('/login')
 	} else {
 		res.status(200)
-		res.render('secrets', { name: req.session.username })
+		// res.render('secrets', { name: req.session.username })
+		res.redirect('/read')
 	}
 })
 
@@ -103,22 +103,24 @@ app.get('/display', function (req, res) {
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
 				if (result) {
-					// console.log(result)
-					var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
-					var photo = new Buffer(result.photo, 'base64')
+					console.log(result)
+					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
+					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
 					res.write('<body><H1>' + result.name + '</H1>')
-					if (result.photo) {
+					if (result.photoMimetype.indexOf('application/') == -1) {
 						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
 					}
 					res.write('<p>Borough: ' + result.borough + '</p>')
 					res.write('<p>Cuisine: ' + result.cuisine + '</p>')
-					res.write('<p>Street: ' + result.address.street + '</p>')
-					res.write('<p>Building: ' + result.address.building + '</p>')
-					res.write('<p>Zipcode: ' + result.address.zipcode + '</p>')
-					if (result.address[0].coord[0].lat && result.address[0].coord[0].lon) {
+					res.write('<p>Street: ' + result.address[0].street + '</p>')
+					res.write('<p>Building: ' + result.address[0].building + '</p>')
+					res.write('<p>Zipcode: ' + result.address[0].zipcode + '</p>')
+					console.log(result.address[0])
+					console.log(result.address[0].coord[0])
+					if ((result.address[0].coord[0].lat !== null) || (result.address[0].coord[0].lon !== null)) {
 						res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
 						res.write('<p>GPS Lon: ' + result.address[0].coord[0].lat + '</p>')
 						res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
@@ -177,8 +179,8 @@ app.get('/edit', function (req, res) {
 			if (!err) {
 				if (result) {
 					// console.log(result)
-					var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
-					var photo = new Buffer(result.photo, 'base64')
+					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
+					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
@@ -188,16 +190,16 @@ app.get('/edit', function (req, res) {
 					res.write('borough: <input type="text" name="name" value="' + result.borough + '"><br>')
 					res.write('borough: <input type="text" name="borough" value="' + result.borough + '"><br>')
 					res.write('cuisine: <input type="text" name="cuisine" value="' + result.cuisine + '"><br>')
-					res.write('street: <input type="text" name="street" value="' + result.address.street + '"><br>')
-					res.write('building: <input type="text" name="building" value="' + result.address.building + '"><br>')
-					res.write('zipcode: <input type="text" name="zipcode" value="' + result.address.zipcode + '"><br>')
+					res.write('street: <input type="text" name="street" value="' + result.address[0].street + '"><br>')
+					res.write('building: <input type="text" name="building" value="' + result.address[0].building + '"><br>')
+					res.write('zipcode: <input type="text" name="zipcode" value="' + result.address[0].zipcode + '"><br>')
 					res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
 					res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
 					if (result.photo) {
 						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
 					}
+					res.write('<a href="edit?_id' + result._id + '"><button>Save</button></a>')
 					res.write('</form>')
-					res.write('<a href="edit?_id' + result._id + '"<button>Save</button></a>')
 					res.end('</body></html>')
 				} else {
 					console.log('no result')
@@ -208,8 +210,28 @@ app.get('/edit', function (req, res) {
 	})
 })
 
+// TODO: Complete edit post function
 app.post('/edit', function (req, res) {
-	console.log(req.query._id)
+	var _id = req.query._id
+	var ObjectId = require('mongodb').ObjectId
+	var o_id = new ObjectId(_id)
+	console.log('post /edit')
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		// TODO: Check req.session.username = document owner
+		db.collection('restaurants').update(
+			{ _id: o_id },
+			{
+			   name: "Andy",
+			   rating: 1,
+			   score: 1
+			},
+			{ upsert: true },
+			function (err, result) {
+				if (err) throw err;
+				console.log(result);
+			})
+		})
 })
 
 function findRestaurants(db, callback) {
@@ -301,22 +323,66 @@ app.post('/create', function (req, res) {
 			mongoose.connect(mongourl)
 			var db = mongoose.connection
 			var name = fields.name
-			var borough = fields.borough
-			var cuisine = fields.cuisine
-			var street = fields.streettreet = null
-			var building = fields.building
-			var zipcode = fields.zipcode
+			var borough
+			if ((fields.borough == undefined) || (fields.borough == null) || (fields.borough == '')) {
+				borough = ''	
+			} else {
+				borough = fields.borough
+			}
+			// var borough = fields.borough
+			var cuisine
+			if ((fields.cuisine == undefined) || (fields.cuisine == null) || (fields.cuisine == '')) {
+				cuisine = ''	
+			} else {
+				cuisine = fields.cuisine
+			}
+			// var cuisine = fields.cuisine
+			var street
+			if ((fields.street == undefined) || (fields.street == null) || (fields.street == '')) {
+				street = ''	
+			} else {
+				street = fields.street
+			}
+			// var street = fields.streettreet
+			var building
+			if ((fields.building == undefined) || (fields.building == null) || (fields.building == '')) {
+				building = ''	
+			} else {
+				building = fields.building
+			}
+			// var building = fields.building
+			var zipcode
+			if ((fields.zipcode == undefined) || (fields.zipcode == null) || (fields.zipcode == '')) {
+				zipcode = ''	
+			} else {
+				zipcode = fields.zipcode
+			}
+			// var zipcode = fields.zipcode
+			var lat
+			// if ((fields.lat == undefined) || (fields.lat == null) || (fields.lat == '')) {
+			// 	lat = 0
+			// } else {
+			// 	lat = fields.lat
+			// }
+			var lon
+			// if ((fields.lon == undefined) || (fields.lon == null) || (fields.lon == '')) {
+			// 	lon = 0
+			// } else {
+			// 	lon = fields.lon
+			// }
 			var lat = fields.lat
 			var lon = fields.lon
 			var photo
-
-			var filepath = files.photo.path
-			if (files.photo.type) {
-				var photoMimetype = files.photo.type;
+			
+			if (files.photo) {
+				var filepath = files.photo.path
+				if (files.photo.type) {
+					var photoMimetype = files.photo.type;
+				}
+				fs.readFile(filepath, function (err, data) {
+					photo = new Buffer(data).toString('base64')
+				})
 			}
-			fs.readFile(filepath, function (err, data) {
-				photo = new Buffer(data).toString('base64')
-			})
 
 			db.on('error', console.error.bind(console, 'connection error:'))
 			db.once('open', function (callback) {
