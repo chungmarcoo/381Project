@@ -1,3 +1,9 @@
+//TODO: LIST:
+// Update restaurant documents / Edit 
+// Rate restaurant
+// Search 
+// RESTful Services
+
 var express = require('express')
 var session = require('cookie-session')
 var bodyParser = require('body-parser')
@@ -79,6 +85,10 @@ app.get('/read', function (req, res) {
 				res.write('<body><h1>Restaurants</h1>')
 				res.write('<h2>User: ' + req.session.username + '</h2>')
 				res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
+				res.write('<form action="/search" enctype="multipart/form-data" method="post">')
+				res.write('<input type="text" name="search" placeholder="search here">')
+				res.write('<input type="submit" value="Search">')
+				res.write('</form>')
 				res.write('<a href="/create"><button>Create New Restaurant</button></a>')
 				res.write('<ol>')
 				for (var i in restaurants) {
@@ -94,6 +104,27 @@ app.get('/read', function (req, res) {
 
 })
 
+app.post('/search', function (req, res) {
+	var form = new formidable.IncomingForm()
+	var searchParam
+	form.parse(req, function (err, fields) {
+		searchParam = fields.search
+	})
+	//TODO: typeerror converting circular structure to json
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		db.collection("restaurants").find( { $text: { $search: searchParam } },
+			function (err, results) {
+			if (err) {
+				res.send(err)
+			} else {
+				res.send(results)
+			}
+		})
+
+	})
+})
+
 app.get('/display', function (req, res) {
 	var _id = req.query._id
 	var ObjectId = require('mongodb').ObjectId
@@ -103,8 +134,6 @@ app.get('/display', function (req, res) {
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
 				if (result) {
-					console.log(result)
-					console.log(typeof result)
 					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
 					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
@@ -123,15 +152,24 @@ app.get('/display', function (req, res) {
 						res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
 						res.write('<p>GPS Lon: ' + result.address[0].coord[0].lon + '</p>')
 						// res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
-						// TODO: google map button not appearing
 						// console.log(result.address[0].coord[0].lat, result.address[0].coord[0].lon)
 						res.write('<a href="/map?lat=' + result.address[0].coord[0].lat + '&lon=' + result.address[0].coord[0].lon + '"><button>Google Map</button></a>')
 					}
+					if(result.grades.length > 0) {
+						res.write('<p>Rating:</p>')
+						res.write('<ol>')
+						for (var i=0; i < result.grades.length; i++){
+							res.write('<li>' + result.grades[i].user + ' (' + result.grades[i].score + ')</li>')
+						}
+						res.write('</ol>')
+					}
 					res.write('<p>Created by: ' + result.owner + '</p>')
-					res.write('<div style="display: flex; justify-content: space-around; width: 25%;"><a href=""><button>Rate</button></a>')
+					res.write('<div style="display: flex; justify-content: space-around; width: 25%;">')
+					res.write('<a href="/rate?_id=' + result._id + '&rater=' + req.session.username + '"><button>Rate</button></a>')
 					res.write('<a href="/edit?_id=' + result._id + '"><button>Edit</button></a>')
 					res.write('<a href="/delete?_id=' + result._id + '"><button>Delete</button></a>')
 					res.write('<a href="/read"><button>Go back</button></a>')
+					res.write('</div>')
 					res.end('</body></html>')
 				} else {
 					console.log('no result')
@@ -142,11 +180,100 @@ app.get('/display', function (req, res) {
 	})
 })
 
-app.get('/map', function (req, res){
-	res.render('gmap', { 
-		lat: req.query.lat, 
-		lon: req.query.lon 
-	})	
+app.get('/rate', function (req,res) {
+	var _id = req.query._id
+	var ObjectId = require('mongodb').ObjectId
+	var o_id = new ObjectId(_id)
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
+			if (!err) {
+				if (result) {
+					var gradesArr = result.grades
+					db.close()
+					// console.log(gradesArr)
+					if (gradesArr.length == 0) {
+						res.writeHead(200, { "Content-Type": "text/html" })
+						res.write('<html><head><title>Rate</title></head>')
+						res.write('<body><H1>Rate</H1>')
+						res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
+						res.write('<label for="rate">Score (1-10):</label>')
+						res.write('<input type="number" id="rate" name="rate" min="1" max="10">')
+						res.write('<input type="submit" value="Rate">')
+						res.write('</form>')
+						res.end('</body></html>')
+					}
+					else {
+						// console.log('gradesArr', gradesArr)
+						for (var i = 0; i < gradesArr.length; i++){
+							if (gradesArr[i].user == req.session.username) {
+								res.writeHead(200, { "Content-Type": "text/html" })
+								res.write('<html><head><title>' + 'rated before' + '</title></head>')
+								res.write('<body><H1>' + 'You can only rate for once!' + '</H1>')
+								res.write('<a href="/read"><button>Go back home</button></a>')	
+								res.end('</body></html>')
+							} else {
+								res.writeHead(200, { "Content-Type": "text/html" })
+								res.write('<html><head><title>Rate</title></head>')
+								res.write('<body><H1>Rate</H1>')
+								res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
+								res.write('<label for="rate">Score (1-10):</label>')
+								res.write('<input type="number" id="rate" name="rate" min="1" max="10">')
+								res.write('<input type="submit" value="Rate">')
+								res.write('</form>')
+								res.end('</body></html>')
+							}
+						}
+					}
+ 				} else {
+					console.log('no result')
+					res.writeHead(200, { "Content-Type": "text/html" })
+					res.write('<html><head><title>' + 'no result' + '</title></head>')
+					res.write('<body><H1>' + 'no result!' + '</H1>')
+					res.write('<a href="/read"><button>Go back home</button></a>')
+					res.end('</body></html>')
+				}
+			}
+			db.close()
+		})
+	})
+})
+
+app.post('/rate', function (req, res) {
+	var _id = req.query._id
+	var ObjectId = require('mongodb').ObjectId
+	var o_id = new ObjectId(_id)
+	var form = new formidable.IncomingForm()
+	var rate
+	form.parse(req, function (err, fields) {
+		rate = fields.rate
+	})
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		var gradeObj = {}
+		gradeObj.user = req.query.rater
+		gradeObj.score = rate
+
+		db.collection("restaurants").update({ _id: o_id },  { $push: { grades: gradeObj }}, function(err, result){
+			if (err) {
+				console.log('Error updating object: ' + err);
+				res.send({'error':'An error has occurred'});
+			} else {
+				console.log('rating success!');
+				// res.send(result);
+				var redirectURL = '/display?_id=' + _id
+				res.redirect(redirectURL)
+			}
+			db.close()
+		})
+	})
+})
+
+app.get('/map', function (req, res) {
+	res.render('gmap', {
+		lat: req.query.lat,
+		lon: req.query.lon
+	})
 	res.end()
 })
 
@@ -154,25 +281,25 @@ app.get('/delete', function (req, res) {
 	var _id = req.query._id
 	var ObjectId = require('mongodb').ObjectId
 	var o_id = new ObjectId(_id)
+	var restaurantObj = {}
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
-		db.collection("restaurants").remove({ _id: o_id }, function (err, result) {
-			if (!err) {
-				if (result) {
-					console.log('delete success!')
-					res.writeHead(200, { "Content-Type": "text/html" })
-					res.write('<html><head><title>' + 'delete' + '</title></head>')
-					res.write('<body><H1>' + 'delete success!' + '</H1>')
-					res.write('<a href="/read"><button>Go back home</button></a>')
-					res.end('</body></html>')
-				} else {
-					console.log('no result')
+		findRestaurantsWithCriteria(db, o_id, function(restaurant) {
+			if (restaurant[0].owner == req.session.username) {
+				db.collection("restaurants").remove({ _id: o_id })
+				console.log('delete success!')
+				res.writeHead(200, { "Content-Type": "text/html" })
+				res.write('<html><head><title>' + 'delete' + '</title></head>')
+				res.write('<body><H1>' + 'delete success!' + '</H1>')
+				res.write('<a href="/read"><button>Go back home</button></a>')
+				res.end('</body></html>')
+			} else {
+				console.log('no result')
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + 'delete' + '</title></head>')
 					res.write('<body><H1>' + 'delete failed!' + '</H1>')
 					res.write('<a href="/read"><button>Go back home</button></a>')
 					res.end('</body></html>')
-				}
 			}
 			db.close()
 		})
@@ -188,9 +315,6 @@ app.get('/edit', function (req, res) {
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
 				if (result) {
-					// console.log(result)
-					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
-					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
@@ -205,7 +329,7 @@ app.get('/edit', function (req, res) {
 					res.write('zipcode: <input type="text" name="zipcode" value="' + result.address[0].zipcode + '"><br>')
 					res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
 					res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
-					if (result.photo) {
+					if (result.photoMimetype.indexOf('application/') == -1) {
 						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
 					}
 					res.write('<a href="edit?_id' + result._id + '"><button>Save</button></a>')
@@ -225,26 +349,26 @@ app.post('/edit', function (req, res) {
 	var _id = req.query._id
 	var ObjectId = require('mongodb').ObjectId
 	var o_id = new ObjectId(_id)
-	console.log('post /edit')
-	MongoClient.connect(mongourl, function (err, db) {
-		if (err) throw err
-		// TODO: Check req.session.username = document owner
-		db.collection('restaurants').update(
-			{ _id: o_id },
-			{
-			   name: 'test',
-			},
-			{ upsert: true },
-			function (err, result) {
-				if (err) throw err;
-				console.log(result);
-			})
-		})
+
+	console.log('POST /edit')
 })
 
 function findRestaurants(db, callback) {
 	var restaurants = [];
 	cursor = db.collection('restaurants').find();
+	cursor.each(function (err, doc) {
+		assert.equal(err, null);
+		if (doc != null) {
+			restaurants.push(doc);
+		} else {
+			callback(restaurants);
+		}
+	});
+}
+
+function findRestaurantsWithCriteria(db, criteria, callback) {
+	var restaurants = [];
+	cursor = db.collection('restaurants').find(criteria);
 	cursor.each(function (err, doc) {
 		assert.equal(err, null);
 		if (doc != null) {
@@ -320,6 +444,7 @@ app.post('/register', function (req, res) {
 			db.close()
 		})
 	})
+	res.redirect('/')
 })
 
 app.post('/create', function (req, res) {
@@ -333,55 +458,38 @@ app.post('/create', function (req, res) {
 			var name = fields.name
 			var borough
 			if ((fields.borough == undefined) || (fields.borough == null) || (fields.borough == '')) {
-				borough = ''	
+				borough = ''
 			} else {
 				borough = fields.borough
 			}
-			// var borough = fields.borough
 			var cuisine
 			if ((fields.cuisine == undefined) || (fields.cuisine == null) || (fields.cuisine == '')) {
-				cuisine = ''	
+				cuisine = ''
 			} else {
 				cuisine = fields.cuisine
 			}
-			// var cuisine = fields.cuisine
 			var street
 			if ((fields.street == undefined) || (fields.street == null) || (fields.street == '')) {
-				street = ''	
+				street = ''
 			} else {
 				street = fields.street
 			}
-			// var street = fields.streettreet
 			var building
 			if ((fields.building == undefined) || (fields.building == null) || (fields.building == '')) {
-				building = ''	
+				building = ''
 			} else {
 				building = fields.building
 			}
-			// var building = fields.building
 			var zipcode
 			if ((fields.zipcode == undefined) || (fields.zipcode == null) || (fields.zipcode == '')) {
-				zipcode = ''	
+				zipcode = ''
 			} else {
 				zipcode = fields.zipcode
 			}
-			// var zipcode = fields.zipcode
-			var lat
-			// if ((fields.lat == undefined) || (fields.lat == null) || (fields.lat == '')) {
-			// 	lat = 0
-			// } else {
-			// 	lat = fields.lat
-			// }
-			var lon
-			// if ((fields.lon == undefined) || (fields.lon == null) || (fields.lon == '')) {
-			// 	lon = 0
-			// } else {
-			// 	lon = fields.lon
-			// }
 			var lat = fields.lat
 			var lon = fields.lon
 			var photo
-			
+
 			if (files.photo) {
 				var filepath = files.photo.path
 				if (files.photo.type) {
