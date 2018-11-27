@@ -1,6 +1,5 @@
 //TODO: LIST:
-// Update restaurant documents / Edit 
-// Rate restaurant
+// Update restaurant documents / Edit
 // Search 
 // RESTful Services
 
