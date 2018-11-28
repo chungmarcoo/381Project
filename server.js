@@ -318,24 +318,34 @@ app.get('/edit', function (req, res) {
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
 					res.write('<body><H1>' + 'Edit ' + result.name + '</H1>')
-					res.write('<form action="/edit" enctype="multipart/form-data" method="post">')
+					res.write('<form action="/edit?_id=' + result._id  + '"' + 'enctype="multipart/form-data" method="post">')
 					res.write('name: <input type="text" name="name" value="' + result.name + '"><br>')
-					res.write('borough: <input type="text" name="name" value="' + result.borough + '"><br>')
 					res.write('borough: <input type="text" name="borough" value="' + result.borough + '"><br>')
 					res.write('cuisine: <input type="text" name="cuisine" value="' + result.cuisine + '"><br>')
 					res.write('street: <input type="text" name="street" value="' + result.address[0].street + '"><br>')
 					res.write('building: <input type="text" name="building" value="' + result.address[0].building + '"><br>')
 					res.write('zipcode: <input type="text" name="zipcode" value="' + result.address[0].zipcode + '"><br>')
-					res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
-					res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
-					if (result.photoMimetype.indexOf('application/') == -1) {
-						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
+					if (result.address[0].coord[0].lat == null) {
+						res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + "" + '"><br>')	
+					} else {
+						res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
 					}
-					res.write('<a href="edit?_id' + result._id + '"><button>Save</button></a>')
+
+					if (result.address[0].coord[0].lon == null) {
+						res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + "" + '"><br>')	
+					} else {
+						res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
+					}
+					res.write('Photo: <input type="file" name="photo"><br>')
+					res.write('<input type="submit" value="Save">')
 					res.write('</form>')
 					res.end('</body></html>')
 				} else {
 					console.log('no result')
+					res.writeHead(200, { "Content-Type": "text/html" })
+					res.write('<html><head><title>' + error + '</title></head>')
+					res.write('<body><H1>Error!</H1>')
+					res.end('</body></html>')
 				}
 			}
 			db.close()
@@ -343,13 +353,93 @@ app.get('/edit', function (req, res) {
 	})
 })
 
-// TODO: Complete edit post function
 app.post('/edit', function (req, res) {
 	var _id = req.query._id
 	var ObjectId = require('mongodb').ObjectId
 	var o_id = new ObjectId(_id)
 
-	console.log('POST /edit')
+	if (req.url.startsWith('/edit') && req.method.toLowerCase() == 'post') {
+		console.log('here')
+		var form = new formidable.IncomingForm()
+		form.parse(req, function (err, fields, files) {
+			if(err){ console.log(err) }
+			mongoose.connect(mongourl)
+			var db = mongoose.connection
+			var name = fields.name
+			var borough = fields.borough
+			var cuisine = fields.cuisine
+			var street = fields.street
+			var building = fields.building
+			var zipcode = fields.zipcode
+			var lat = fields.lat
+			var lon = fields.lon
+			console.log(fields.lon)
+			var photo
+			var filepath = files.photo.path
+			var photoMimetype = files.photo.type
+
+			if (photoMimetype !== 'application/octet-stream') {
+				fs.readFile(filepath, function (err, data) {
+					photo = new Buffer(data).toString('base64')
+				})
+			}
+			db.on('error', console.error.bind(console, 'connection error:'))
+			db.once('open', function (callback) {
+				console.log('here')
+				var Restaurants = mongoose.model('Restaurants', restaurantSchema)
+				if (photo == null) {
+					Restaurants.updateOne({_id: o_id}, 
+						{$set:{name: name, borough: borough,
+						cuisine: cuisine, 
+						photoMimetype: photoMimetype, 
+						address: [{
+							street: street, 
+							building: building,
+							zipcode: zipcode, 
+							coord: [{ lat: lat, lon: lon }]
+						}]
+					}}, 
+					function(err){			
+						if(err){
+							console.log(err)
+							res.writeHead(200, { "Content-Type": "text/html" })
+							res.write('<html><head><title>' + 'error' + '</title></head>')
+							res.write('<body><H1>Error!</H1>')
+							res.end('</body></html>')
+						}
+						res.redirect('/display?_id='+ _id)
+						console.log("Update Completed!")
+					});
+
+				} else{
+					Restaurants.updateOne({_id: o_id}, 
+						{$set:{name: name, borough: borough,
+						cuisine: cuisine, 
+						photoMimetype: photoMimetype, 
+						photo: photo, 
+						address: [{
+							street: street, 
+							building: building,
+							zipcode: zipcode, 
+							coord: [{ lat: lat, lon: lon }]
+						}]
+					}}, 
+					function(err){			
+						if(err){
+							console.log(err)
+							res.writeHead(200, { "Content-Type": "text/html" })
+							res.write('<html><head><title>' + 'error' + '</title></head>')
+							res.write('<body><H1>Error!</H1>')
+							res.end('</body></html>')
+						}
+						res.redirect('/display?_id='+ _id)
+						console.log("Update Success!\n");
+					});					
+				}
+			})
+		})
+		return
+	}
 })
 
 function findRestaurants(db, callback) {
@@ -488,6 +578,8 @@ app.post('/create', function (req, res) {
 			var lat = fields.lat
 			var lon = fields.lon
 			var photo
+			
+			console.log('files.photo: ',files.photo)
 
 			if (files.photo) {
 				var filepath = files.photo.path
