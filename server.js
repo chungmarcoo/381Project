@@ -1,5 +1,4 @@
 //TODO: LIST:
-// Update restaurant documents / Edit
 // Search 
 // RESTful Services
 
@@ -139,7 +138,7 @@ app.get('/display', function (req, res) {
 					res.writeHead(200, { "Content-Type": "text/html" })
 					res.write('<html><head><title>' + result.name + '</title></head>')
 					res.write('<body><H1>' + result.name + '</H1>')
-					if (result.photoMimetype.indexOf('application/') == -1) {
+					if (result.photo) {
 						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
 					}
 					res.write('<p>Borough: ' + result.borough + '</p>')
@@ -359,7 +358,6 @@ app.post('/edit', function (req, res) {
 	var o_id = new ObjectId(_id)
 
 	if (req.url.startsWith('/edit') && req.method.toLowerCase() == 'post') {
-		console.log('here')
 		var form = new formidable.IncomingForm()
 		form.parse(req, function (err, fields, files) {
 			if(err){ console.log(err) }
@@ -373,25 +371,29 @@ app.post('/edit', function (req, res) {
 			var zipcode = fields.zipcode
 			var lat = fields.lat
 			var lon = fields.lon
-			console.log(fields.lon)
-			var photo
-			var filepath = files.photo.path
-			var photoMimetype = files.photo.type
+			var photo = ""
+			var filename = files.photo.path
+			var photoMimetype = ""
 
-			if (photoMimetype !== 'application/octet-stream') {
-				fs.readFile(filepath, function (err, data) {
-					photo = new Buffer(data).toString('base64')
+			if (files.photo.type) {
+				photoMimetype = files.photo.type;
+			}
+
+			if (photoMimetype != 'application/octet-stream') {
+				fs.readFile(filename, function (err, data) {
+					photo = new Buffer(data).toString('base64');
 				})
 			}
+
 			db.on('error', console.error.bind(console, 'connection error:'))
 			db.once('open', function (callback) {
-				console.log('here')
 				var Restaurants = mongoose.model('Restaurants', restaurantSchema)
-				if (photo == null) {
+				if (photo == null || photo == '' || photo == undefined) {
+					console.log('photo no need to update')
 					Restaurants.updateOne({_id: o_id}, 
 						{$set:{name: name, borough: borough,
 						cuisine: cuisine, 
-						photoMimetype: photoMimetype, 
+						photoMimetype: photoMimetype,
 						address: [{
 							street: street, 
 							building: building,
