@@ -81,7 +81,7 @@ app.get('/read', function (req, res) {
 				res.writeHead(200, { "Content-Type": "text/html" })
 				res.write('<html><head><title>Restaurant</title></head>')
 				res.write('<body><h1>Restaurants</h1>')
-				res.write('<h2>User: ' + req.session.username + '</h2>')
+				res.write('<h2>User: ' + req.session.username + '<a href="/logout"><button>Logout</button></a>' + '</h2>')
 				res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
 				res.write('<a href="/create"><button>Create New Restaurant</button></a>')
 				res.write('<ol>')
@@ -254,7 +254,6 @@ app.get('/delete', function (req, res) {
 	var _id = req.query._id
 	var ObjectId = require('mongodb').ObjectId
 	var o_id = new ObjectId(_id)
-	var restaurantObj = {}
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
 		findRestaurantsWithCriteria(db, o_id, function(restaurant) {
@@ -594,6 +593,22 @@ app.post('/create', function (req, res) {
 		})
 		return
 	}
+})
+
+app.get('/name/:name', function (req, res) {
+	var criteria = {name : req.params.name}
+
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		findRestaurantsWithCriteria(db, criteria, function(restaurant) {
+			if (restaurant.length > 0) {
+				res.status(200).json(restaurant).end
+			} else {
+				res.status(200).json({}).end
+			}
+			db.close()
+		})
+	})
 })
 
 app.get('/logout', function (req, res) {
