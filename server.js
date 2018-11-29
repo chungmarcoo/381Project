@@ -83,10 +83,6 @@ app.get('/read', function (req, res) {
 				res.write('<body><h1>Restaurants</h1>')
 				res.write('<h2>User: ' + req.session.username + '</h2>')
 				res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
-				res.write('<form action="/search" enctype="multipart/form-data" method="post">')
-				res.write('<input type="text" name="search" placeholder="search here">')
-				res.write('<input type="submit" value="Search">')
-				res.write('</form>')
 				res.write('<a href="/create"><button>Create New Restaurant</button></a>')
 				res.write('<ol>')
 				for (var i in restaurants) {
@@ -99,29 +95,8 @@ app.get('/read', function (req, res) {
 			})
 		})
 	}
-
 })
 
-app.post('/search', function (req, res) {
-	var form = new formidable.IncomingForm()
-	var searchParam
-	form.parse(req, function (err, fields) {
-		searchParam = fields.search
-	})
-	//TODO: typeerror converting circular structure to json
-	MongoClient.connect(mongourl, function (err, db) {
-		if (err) throw err
-		db.collection("restaurants").find( { $text: { $search: searchParam } },
-			function (err, results) {
-			if (err) {
-				res.send(err)
-			} else {
-				res.send(results)
-			}
-		})
-
-	})
-})
 
 app.get('/display', function (req, res) {
 	var _id = req.query._id
