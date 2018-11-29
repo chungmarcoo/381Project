@@ -1,6 +1,5 @@
 //TODO: LIST:
 // Search 
-// RESTful Services
 
 var express = require('express')
 var session = require('cookie-session')
@@ -164,7 +163,6 @@ app.get('/rate', function (req,res) {
 				if (result) {
 					var gradesArr = result.grades
 					db.close()
-					// console.log(gradesArr)
 					if (gradesArr.length == 0) {
 						res.writeHead(200, { "Content-Type": "text/html" })
 						res.write('<html><head><title>Rate</title></head>')
@@ -177,7 +175,6 @@ app.get('/rate', function (req,res) {
 						res.end('</body></html>')
 					}
 					else {
-						// console.log('gradesArr', gradesArr)
 						for (var i = 0; i < gradesArr.length; i++){
 							if (gradesArr[i].user == req.session.username) {
 								res.writeHead(200, { "Content-Type": "text/html" })
@@ -521,41 +518,14 @@ app.post('/create', function (req, res) {
 			mongoose.connect(mongourl)
 			var db = mongoose.connection
 			var name = fields.name
-			var borough
-			if ((fields.borough == undefined) || (fields.borough == null) || (fields.borough == '')) {
-				borough = ''
-			} else {
-				borough = fields.borough
-			}
-			var cuisine
-			if ((fields.cuisine == undefined) || (fields.cuisine == null) || (fields.cuisine == '')) {
-				cuisine = ''
-			} else {
-				cuisine = fields.cuisine
-			}
-			var street
-			if ((fields.street == undefined) || (fields.street == null) || (fields.street == '')) {
-				street = ''
-			} else {
-				street = fields.street
-			}
-			var building
-			if ((fields.building == undefined) || (fields.building == null) || (fields.building == '')) {
-				building = ''
-			} else {
-				building = fields.building
-			}
-			var zipcode
-			if ((fields.zipcode == undefined) || (fields.zipcode == null) || (fields.zipcode == '')) {
-				zipcode = ''
-			} else {
-				zipcode = fields.zipcode
-			}
+			var borough = fields.borough
+			var cuisine = fields.cuisine
+			var street = fields.street
+			var building = fields.building
+			var zipcode = fields.zipcode
 			var lat = fields.lat
 			var lon = fields.lon
 			var photo
-			
-			console.log('files.photo: ',files.photo)
 
 			if (files.photo) {
 				var filepath = files.photo.path
@@ -582,11 +552,18 @@ app.post('/create', function (req, res) {
 					console.log(err)
 				})
 
-				newRestaurant.save(function (err) {
-					if (err) throw err
-					console.log('new restaurant created!')
-					db.close()
-					res.redirect('/read')
+				newRestaurant.save(function (err, restaurantCreated) {
+					if (err) {
+						res.writeHead(200, { "Content-Type": "application/json" })
+						res.write(JSON.stringify({status: 'failed'}))
+						db.close()
+					} else {
+						console.log('new restaurant created!')
+						res.writeHead(200, { "Content-Type": "application/json" })
+						res.write(JSON.stringify({status: 'ok', _id: restaurantCreated._id}))
+						db.close()
+					}
+
 				})
 			})
 
@@ -597,6 +574,38 @@ app.post('/create', function (req, res) {
 
 app.get('/name/:name', function (req, res) {
 	var criteria = {name : req.params.name}
+
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		findRestaurantsWithCriteria(db, criteria, function(restaurant) {
+			if (restaurant.length > 0) {
+				res.status(200).json(restaurant).end
+			} else {
+				res.status(200).json({}).end
+			}
+			db.close()
+		})
+	})
+})
+
+app.get('/borough/:borough', function (req, res) {
+	var criteria = {borough : req.params.borough}
+
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		findRestaurantsWithCriteria(db, criteria, function(restaurant) {
+			if (restaurant.length > 0) {
+				res.status(200).json(restaurant).end
+			} else {
+				res.status(200).json({}).end
+			}
+			db.close()
+		})
+	})
+})
+
+app.get('/cuisine/:cuisine', function (req, res) {
+	var criteria = {cuisine : req.params.cuisine}
 
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
