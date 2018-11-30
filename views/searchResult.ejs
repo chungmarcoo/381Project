@@ -7,10 +7,7 @@
         <li>No result found</li> 
         <% } else { %>
                 <% for( var i=0; i < docs.length; i++) { %>
-        <li>
-            <a href="/display?_id=<%=docs[i]._id%>">
-                <%=docs[i].name%></a>
-        </li>
+        <li><a href="/display?_id=<%=docs[i]._id%>"><%=docs[i].name%></a></li>
         <% } %>
         <% } %>
     </ol>

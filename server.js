@@ -78,7 +78,7 @@ app.get('/searchByKeyword', function (req, res) {
 		})
 		db.collection("restaurants").find({ '$text': {'$search' : keyword, $caseSensitive: false} } ).toArray(function(err, docs) {
 			assert.equal(err, null)
-			console.log("Found the following records" + doc)
+			console.log("Found the following records" + docs)
 
 			if (docs) {
 				// res.writeHead(200, { "Content-Type": "text/html" })
