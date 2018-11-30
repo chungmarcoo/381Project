@@ -19,7 +19,7 @@ var restaurantSchema = new Schema({
 	name: { type: String, required: true },
 	borough: String,
 	cuisine: String,
-	photo: Buffer,
+	photo: String,
 	photoMimetype: String,
 	address: [{
 		street: String,
@@ -312,7 +312,7 @@ app.get('/delete', function (req, res) {
 				// res.end('</body></html>')
 				res.render('deleteSuccess')
 			} else {
-				console.log('no result')
+					console.log('no result')
 					// res.writeHead(200, { "Content-Type": "text/html" })
 					// res.write('<html><head><title>' + 'delete' + '</title></head>')
 					// res.write('<body><H1>' + 'delete failed!' + '</H1>')
@@ -360,7 +360,14 @@ app.get('/edit', function (req, res) {
 					// res.write('<input type="submit" value="Save">')
 					// res.write('</form>')
 					// res.end('</body></html>')
-					res.render('edit', {result: result})
+					if (result.owner == req.session.username) {
+						console.log('req.session.username == owner')
+						res.render('edit', {result: result})
+					} else {
+						console.log('req.session.username != owner')
+						res.render('notAuthorized')
+					}
+					// res.render('edit', {result: result})
 				} else {
 					console.log('no result')
 					// res.writeHead(200, { "Content-Type": "text/html" })
@@ -438,6 +445,7 @@ app.post('/edit', function (req, res) {
 					});
 
 				} else{
+					console.log('photo changed')
 					Restaurants.updateOne({_id: o_id}, 
 						{$set:{name: name, borough: borough,
 						cuisine: cuisine, 
@@ -572,6 +580,7 @@ app.post('/create', function (req, res) {
 	if (req.url == '/create' && req.method.toLowerCase() == 'post') {
 		var form = new formidable.IncomingForm()
 		form.parse(req, function (err, fields, files) {
+			if (err) {console.log(err)}
 			// console.log('fields', fields)
 			// console.log('files', files)
 			mongoose.connect(mongourl)
@@ -584,17 +593,18 @@ app.post('/create', function (req, res) {
 			var zipcode = fields.zipcode
 			var lat = fields.lat
 			var lon = fields.lon
-			var photo
-
-			if (files.photo) {
-				var filepath = files.photo.path
-				if (files.photo.type) {
-					var photoMimetype = files.photo.type;
-				}
-				fs.readFile(filepath, function (err, data) {
-					photo = new Buffer(data).toString('base64')
-				})
+			var photoMimetype = ""
+			var photo = ""
+			var filepath = files.photo.path
+				
+			if (files.photo.type) {
+				photoMimetype = files.photo.type;
 			}
+			
+			fs.readFile(filepath, function (err, data) {
+				photo = new Buffer(data).toString('base64')
+			})
+			
 
 			db.on('error', console.error.bind(console, 'connection error:'))
 			db.once('open', function (callback) {
