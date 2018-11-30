@@ -54,13 +54,13 @@ app.use(express.static('public'))
 app.get('/', function (req, res) {
 	console.log(req.session)
 	if (!req.session.authenticated) {
-		// res.redirect('/login')
-		res.render('login')
+		res.redirect('/login')
+		// res.render('login')
 	} else {
-		// res.status(200)
+		res.status(200)
 		// // res.render('secrets', { name: req.session.username })
-		// res.redirect('/read')
-		res.render('read')
+		res.redirect('/read')
+		// res.render('read')
 	}
 })
 
