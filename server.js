@@ -72,13 +72,12 @@ app.get('/searchByKeyword', function (req, res) {
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
 		db.collection("restaurants").ensureIndex({"$**": "text" }, function(err, result) {
-			console.log(result);
+			console.log('result', result);
 		})
-
 		db.collection("restaurants").find({ '$text': {'$search' : keyword, $caseSensitive: false} } ).toArray(function(err, docs) {
 			assert.equal(err, null)
-			console.log("Found the following records")
-			console.log(docs)
+			console.log("Found the following records" + doc)
+
 			if (docs) {
 				// res.writeHead(200, { "Content-Type": "text/html" })
 				// res.write('<html><body>')
