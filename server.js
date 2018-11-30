@@ -76,22 +76,21 @@ app.get('/searchByKeyword', function (req, res) {
 		})
 
 		db.collection("restaurants").find({ '$text': {'$search' : keyword, $caseSensitive: false} } ).toArray(function(err, docs) {
-			assert.equal(err, null);
-			console.log("Found the following records");
-			console.log(docs);
-			docs.forEach(function(doc) {
-				console.log('forEach', doc);
-			})
+			assert.equal(err, null)
+			console.log("Found the following records")
+			console.log(docs)
 			if (docs) {
-				res.writeHead(200, { "Content-Type": "text/html" })
-				res.write('<html><body>')
-				res.write('<h1>Search result(s): </h1>')
-				res.write('<ol>')
-				for (var i=0; i<docs.length; i++) {
-					res.write('<li><a href="/display?_id=' + docs[i]._id + '">' + docs[i].name + '</a></li>')
-				}
-				res.write('</ol>')
-				res.end('</body></html>')
+				// res.writeHead(200, { "Content-Type": "text/html" })
+				// res.write('<html><body>')
+				// res.write('<h1>Search result(s): </h1>')
+				// res.write('<ol>')
+				// for (var i=0; i<docs.length; i++) {
+				// 	res.write('<li><a href="/display?_id=' + docs[i]._id + '">' + docs[i].name + '</a></li>')
+				// }
+				// res.write('</ol>')
+				// res.end('</body></html>')
+
+				res.render('searchResult', {docs: docs})
 				db.close()
 			} else {
 				res.writeHead(200, { "Content-Type": "application/json" })
@@ -113,20 +112,21 @@ app.get('/read', function (req, res) {
 			findRestaurants(db, function (restaurants) {
 				db.close()
 				console.log('Disconnected MongoDB\n')
-				res.writeHead(200, { "Content-Type": "text/html" })
-				res.write('<html><head><title>Restaurant</title></head>')
-				res.write('<body><h1>Restaurants</h1>')
-				res.write('<h2>User: ' + req.session.username + '<a href="/logout"><button>Logout</button></a>' + '</h2>')
-				res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
-				res.write('<a href="/search"><button>Search</button></a>')
-				res.write('<a href="/create"><button>Create New Restaurant</button></a>')
-				res.write('<ol>')
-				for (var i in restaurants) {
-					var _id = restaurants[i]._id
-					res.write('<li><a href="/display?_id=' + _id + '">' + restaurants[i].name + '</a></li>')
-				}
-				res.write('</ol>')
-				res.end('</body></html>')
+				// res.writeHead(200, { "Content-Type": "text/html" })
+				// res.write('<html><head><title>Restaurant</title></head>')
+				// res.write('<body><h1>Restaurants</h1>')
+				// res.write('<h2>User: ' + req.session.username + '<a href="/logout"><button>Logout</button></a>' + '</h2>')
+				// res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
+				// res.write('<a href="/search"><button>Search</button></a>')
+				// res.write('<a href="/create"><button>Create New Restaurant</button></a>')
+				// res.write('<ol>')
+				// for (var i in restaurants) {
+				// 	var _id = restaurants[i]._id
+				// 	res.write('<li><a href="/display?_id=' + _id + '">' + restaurants[i].name + '</a></li>')
+				// }
+				// res.write('</ol>')
+				// res.end('</body></html>')
+				res.render('read', {username: req.session.username, restaurants: restaurants})
 				return (restaurants)
 			})
 		})
@@ -146,40 +146,41 @@ app.get('/display', function (req, res) {
 					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
 					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
-					res.writeHead(200, { "Content-Type": "text/html" })
-					res.write('<html><head><title>' + result.name + '</title></head>')
-					res.write('<body><H1>' + result.name + '</H1>')
-					if (result.photo) {
-						res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
-					}
-					res.write('<p>Borough: ' + result.borough + '</p>')
-					res.write('<p>Cuisine: ' + result.cuisine + '</p>')
-					res.write('<p>Street: ' + result.address[0].street + '</p>')
-					res.write('<p>Building: ' + result.address[0].building + '</p>')
-					res.write('<p>Zipcode: ' + result.address[0].zipcode + '</p>')
-					if ((result.address[0].coord[0].lat !== null) || (result.address[0].coord[0].lon !== null)) {
-						res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
-						res.write('<p>GPS Lon: ' + result.address[0].coord[0].lon + '</p>')
-						// res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
-						// console.log(result.address[0].coord[0].lat, result.address[0].coord[0].lon)
-						res.write('<a href="/map?lat=' + result.address[0].coord[0].lat + '&lon=' + result.address[0].coord[0].lon + '"><button>Google Map</button></a>')
-					}
-					if(result.grades.length > 0) {
-						res.write('<p>Rating:</p>')
-						res.write('<ol>')
-						for (var i=0; i < result.grades.length; i++){
-							res.write('<li>' + result.grades[i].user + ' (' + result.grades[i].score + ')</li>')
-						}
-						res.write('</ol>')
-					}
-					res.write('<p>Created by: ' + result.owner + '</p>')
-					res.write('<div style="display: flex; justify-content: space-around; width: 25%;">')
-					res.write('<a href="/rate?_id=' + result._id + '&rater=' + req.session.username + '"><button>Rate</button></a>')
-					res.write('<a href="/edit?_id=' + result._id + '"><button>Edit</button></a>')
-					res.write('<a href="/delete?_id=' + result._id + '"><button>Delete</button></a>')
-					res.write('<a href="/read"><button>Go back</button></a>')
-					res.write('</div>')
-					res.end('</body></html>')
+					// res.writeHead(200, { "Content-Type": "text/html" })
+					// res.write('<html><head><title>' + result.name + '</title></head>')
+					// res.write('<body><H1>' + result.name + '</H1>')
+					// if (result.photo) {
+					// 	res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
+					// }
+					// res.write('<p>Borough: ' + result.borough + '</p>')
+					// res.write('<p>Cuisine: ' + result.cuisine + '</p>')
+					// res.write('<p>Street: ' + result.address[0].street + '</p>')
+					// res.write('<p>Building: ' + result.address[0].building + '</p>')
+					// res.write('<p>Zipcode: ' + result.address[0].zipcode + '</p>')
+					// if ((result.address[0].coord[0].lat !== null) || (result.address[0].coord[0].lon !== null)) {
+					// 	res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
+					// 	res.write('<p>GPS Lon: ' + result.address[0].coord[0].lon + '</p>')
+					// 	// res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
+					// 	// console.log(result.address[0].coord[0].lat, result.address[0].coord[0].lon)
+					// 	res.write('<a href="/map?lat=' + result.address[0].coord[0].lat + '&lon=' + result.address[0].coord[0].lon + '"><button>Google Map</button></a>')
+					// }
+					// if(result.grades.length > 0) {
+					// 	res.write('<p>Rating:</p>')
+					// 	res.write('<ol>')
+					// 	for (var i=0; i < result.grades.length; i++){
+					// 		res.write('<li>' + result.grades[i].user + ' (' + result.grades[i].score + ')</li>')
+					// 	}
+					// 	res.write('</ol>')
+					// }
+					// res.write('<p>Created by: ' + result.owner + '</p>')
+					// res.write('<div style="display: flex; justify-content: space-around; width: 25%;">')
+					// res.write('<a href="/rate?_id=' + result._id + '&rater=' + req.session.username + '"><button>Rate</button></a>')
+					// res.write('<a href="/edit?_id=' + result._id + '"><button>Edit</button></a>')
+					// res.write('<a href="/delete?_id=' + result._id + '"><button>Delete</button></a>')
+					// res.write('<a href="/read"><button>Go back</button></a>')
+					// res.write('</div>')
+					// res.end('</body></html>')
+					res.render('display', {result: result, username: req.session.username})
 				} else {
 					console.log('no result')
 				}
@@ -201,45 +202,48 @@ app.get('/rate', function (req,res) {
 					var gradesArr = result.grades
 					db.close()
 					if (gradesArr.length == 0) {
-						res.writeHead(200, { "Content-Type": "text/html" })
-						res.write('<html><head><title>Rate</title></head>')
-						res.write('<body><H1>Rate</H1>')
-						res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
-						res.write('<label for="rate">Score (1-10):</label>')
-						res.write('<input type="number" id="rate" name="rate" min="1" max="10">')
-						res.write('<input type="submit" value="Rate">')
-						res.write('</form>')
-						res.end('</body></html>')
+						// res.writeHead(200, { "Content-Type": "text/html" })
+						// res.write('<html><head><title>Rate</title></head>')
+						// res.write('<body><H1>Rate</H1>')
+						// res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
+						// res.write('<label for="rate">Score (1-10):</label>')
+						// res.write('<input type="number" id="rate" name="rate" min="1" max="10">')
+						// res.write('<input type="submit" value="Rate">')
+						// res.write('</form>')
+						// res.end('</body></html>')
+						res.render('rate', {username: req.session.username, _id: _id})
 					}
 					else {
 						for (var i = 0; i < gradesArr.length; i++){
 							if (gradesArr[i].user == req.session.username) {
-								res.writeHead(200, { "Content-Type": "text/html" })
-								res.write('<html><head><title>' + 'rated before' + '</title></head>')
-								res.write('<body><H1>' + 'You can only rate for once!' + '</H1>')
-								res.write('<a href="/read"><button>Go back home</button></a>')	
-								res.end('</body></html>')
+								// res.writeHead(200, { "Content-Type": "text/html" })
+								// res.write('<html><head><title>' + 'rated before' + '</title></head>')
+								// res.write('<body><H1>' + 'You can only rate for once!' + '</H1>')
+								// res.write('<a href="/read"><button>Go back home</button></a>')	
+								// res.end('</body></html>')
+								res.render('ratedBefore')
 							} else {
-								res.writeHead(200, { "Content-Type": "text/html" })
-								res.write('<html><head><title>Rate</title></head>')
-								res.write('<body><H1>Rate</H1>')
-								res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
-								res.write('<label for="rate">Score (1-10):</label>')
-								res.write('<input type="number" id="rate" name="rate" min="1" max="10" autocomplete="off" value="1" required>')
-								// res.write('<input type="number" id="rate" name="rate" min="1" max="10" value="1" required>')
-								res.write('<input type="submit" value="Rate">')
-								res.write('</form>')
-								res.end('</body></html>')
+								// res.writeHead(200, { "Content-Type": "text/html" })
+								// res.write('<html><head><title>Rate</title></head>')
+								// res.write('<body><H1>Rate</H1>')
+								// res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
+								// res.write('<label for="rate">Score (1-10):</label>')
+								// res.write('<input type="number" id="rate" name="rate" min="1" max="10" autocomplete="off" value="1" required>')
+								// res.write('<input type="submit" value="Rate">')
+								// res.write('</form>')
+								// res.end('</body></html>')
+								res.render('rate', {username: req.session.username, _id: _id})
 							}
 						}
 					}
  				} else {
 					console.log('no result')
-					res.writeHead(200, { "Content-Type": "text/html" })
-					res.write('<html><head><title>' + 'no result' + '</title></head>')
-					res.write('<body><H1>' + 'no result!' + '</H1>')
-					res.write('<a href="/read"><button>Go back home</button></a>')
-					res.end('</body></html>')
+					// res.writeHead(200, { "Content-Type": "text/html" })
+					// res.write('<html><head><title>' + 'no result' + '</title></head>')
+					// res.write('<body><H1>' + 'no result!' + '</H1>')
+					// res.write('<a href="/read"><button>Go back home</button></a>')
+					// res.end('</body></html>')
+					res.render('noResult')
 				}
 			}
 			db.close()
@@ -264,11 +268,12 @@ app.post('/rate', function (req, res) {
 
 		db.collection("restaurants").update({ _id: o_id },  { $push: { grades: gradeObj }}, function(err, result){
 			if (err) {
-				console.log('Error updating object: ' + err);
-				res.send({'error':'An error has occurred'});
+				console.log('Error updating object: ' + err)
+				// res.send({'error':'An error has occurred'})
+				res.render('ratedBefore')
 			} else {
-				console.log('rating success!');
-				// res.send(result);
+				console.log('rating success!')
+				// res.send(result)
 				var redirectURL = '/display?_id=' + _id
 				res.redirect(redirectURL)
 			}
@@ -295,18 +300,20 @@ app.get('/delete', function (req, res) {
 			if (restaurant[0].owner == req.session.username) {
 				db.collection("restaurants").remove({ _id: o_id })
 				console.log('delete success!')
-				res.writeHead(200, { "Content-Type": "text/html" })
-				res.write('<html><head><title>' + 'delete' + '</title></head>')
-				res.write('<body><H1>' + 'delete success!' + '</H1>')
-				res.write('<a href="/read"><button>Go back home</button></a>')
-				res.end('</body></html>')
+				// res.writeHead(200, { "Content-Type": "text/html" })
+				// res.write('<html><head><title>' + 'delete' + '</title></head>')
+				// res.write('<body><H1>' + 'delete success!' + '</H1>')
+				// res.write('<a href="/read"><button>Go back home</button></a>')
+				// res.end('</body></html>')
+				res.render('deleteSuccess')
 			} else {
 				console.log('no result')
-					res.writeHead(200, { "Content-Type": "text/html" })
-					res.write('<html><head><title>' + 'delete' + '</title></head>')
-					res.write('<body><H1>' + 'delete failed!' + '</H1>')
-					res.write('<a href="/read"><button>Go back home</button></a>')
-					res.end('</body></html>')
+					// res.writeHead(200, { "Content-Type": "text/html" })
+					// res.write('<html><head><title>' + 'delete' + '</title></head>')
+					// res.write('<body><H1>' + 'delete failed!' + '</H1>')
+					// res.write('<a href="/read"><button>Go back home</button></a>')
+					// res.end('</body></html>')
+					res.render('deleteFailed')
 			}
 			db.close()
 		})
@@ -323,37 +330,39 @@ app.get('/edit', function (req, res) {
 			if (!err) {
 				if (result) {
 					db.close()
-					res.writeHead(200, { "Content-Type": "text/html" })
-					res.write('<html><head><title>' + result.name + '</title></head>')
-					res.write('<body><H1>' + 'Edit ' + result.name + '</H1>')
-					res.write('<form action="/edit?_id=' + result._id  + '"' + 'enctype="multipart/form-data" method="post">')
-					res.write('name: <input type="text" name="name" value="' + result.name + '"><br>')
-					res.write('borough: <input type="text" name="borough" value="' + result.borough + '"><br>')
-					res.write('cuisine: <input type="text" name="cuisine" value="' + result.cuisine + '"><br>')
-					res.write('street: <input type="text" name="street" value="' + result.address[0].street + '"><br>')
-					res.write('building: <input type="text" name="building" value="' + result.address[0].building + '"><br>')
-					res.write('zipcode: <input type="text" name="zipcode" value="' + result.address[0].zipcode + '"><br>')
-					if (result.address[0].coord[0].lat == null) {
-						res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + "" + '"><br>')	
-					} else {
-						res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
-					}
+					// res.writeHead(200, { "Content-Type": "text/html" })
+					// res.write('<html><head><title>' + result.name + '</title></head>')
+					// res.write('<body><H1>' + 'Edit ' + result.name + '</H1>')
+					// res.write('<form action="/edit?_id=' + result._id  + '"' + 'enctype="multipart/form-data" method="post">')
+					// res.write('name: <input type="text" name="name" value="' + result.name + '"><br>')
+					// res.write('borough: <input type="text" name="borough" value="' + result.borough + '"><br>')
+					// res.write('cuisine: <input type="text" name="cuisine" value="' + result.cuisine + '"><br>')
+					// res.write('street: <input type="text" name="street" value="' + result.address[0].street + '"><br>')
+					// res.write('building: <input type="text" name="building" value="' + result.address[0].building + '"><br>')
+					// res.write('zipcode: <input type="text" name="zipcode" value="' + result.address[0].zipcode + '"><br>')
+					// if (result.address[0].coord[0].lat == null) {
+					// 	res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + "" + '"><br>')	
+					// } else {
+					// 	res.write('GPS Coordinates (Lat.): <input type="text" name="lat" value="' + result.address[0].coord[0].lat + '"><br>')
+					// }
 
-					if (result.address[0].coord[0].lon == null) {
-						res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + "" + '"><br>')	
-					} else {
-						res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
-					}
-					res.write('Photo: <input type="file" name="photo"><br>')
-					res.write('<input type="submit" value="Save">')
-					res.write('</form>')
-					res.end('</body></html>')
+					// if (result.address[0].coord[0].lon == null) {
+					// 	res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + "" + '"><br>')	
+					// } else {
+					// 	res.write('GPS Coordinates (Lon.): <input type="text" name="lon" value="' + result.address[0].coord[0].lon + '"><br>')
+					// }
+					// res.write('Photo: <input type="file" name="photo"><br>')
+					// res.write('<input type="submit" value="Save">')
+					// res.write('</form>')
+					// res.end('</body></html>')
+					res.render('edit', {result: result})
 				} else {
 					console.log('no result')
-					res.writeHead(200, { "Content-Type": "text/html" })
-					res.write('<html><head><title>' + error + '</title></head>')
-					res.write('<body><H1>Error!</H1>')
-					res.end('</body></html>')
+					// res.writeHead(200, { "Content-Type": "text/html" })
+					// res.write('<html><head><title>' + error + '</title></head>')
+					// res.write('<body><H1>Error!</H1>')
+					// res.end('</body></html>')
+					res.render('error', {err: err})
 				}
 			}
 			db.close()
@@ -413,10 +422,11 @@ app.post('/edit', function (req, res) {
 					function(err){			
 						if(err){
 							console.log(err)
-							res.writeHead(200, { "Content-Type": "text/html" })
-							res.write('<html><head><title>' + 'error' + '</title></head>')
-							res.write('<body><H1>Error!</H1>')
-							res.end('</body></html>')
+							// res.writeHead(200, { "Content-Type": "text/html" })
+							// res.write('<html><head><title>' + 'error' + '</title></head>')
+							// res.write('<body><H1>Error!</H1>')
+							// res.end('</body></html>')
+							res.render('error', {err: err})
 						}
 						res.redirect('/display?_id='+ _id)
 						console.log("Update Completed!")
@@ -438,10 +448,11 @@ app.post('/edit', function (req, res) {
 					function(err){			
 						if(err){
 							console.log(err)
-							res.writeHead(200, { "Content-Type": "text/html" })
-							res.write('<html><head><title>' + 'error' + '</title></head>')
-							res.write('<body><H1>Error!</H1>')
-							res.end('</body></html>')
+							// res.writeHead(200, { "Content-Type": "text/html" })
+							// res.write('<html><head><title>' + 'error' + '</title></head>')
+							// res.write('<body><H1>Error!</H1>')
+							// res.end('</body></html>')
+							res.render('error', {err: err})
 						}
 						res.redirect('/display?_id='+ _id)
 						console.log("Update Success!\n");
