@@ -494,11 +494,13 @@ function findRestaurantsWithCriteria(db, criteria, callback) {
 }
 
 app.get('/login', function (req, res) {
-	res.sendFile(__dirname + '/public/login.html')
+	// res.sendFile(__dirname + '/public/login.html')
+	res.render('login')
 })
 
 app.get('/register', function (req, res) {
-	res.sendFile(__dirname + '/public/register.html')
+	// res.sendFile(__dirname + '/public/register.html')
+	res.render('register')
 })
 
 app.get('/create', function (req, res) {
