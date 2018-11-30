@@ -145,6 +145,7 @@ app.get('/display', function (req, res) {
 		if (err) throw err
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
 			if (!err) {
+				console.log('result: ', result)
 				if (result) {
 					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
 					// var photo = new Buffer(result.photo, 'base64')

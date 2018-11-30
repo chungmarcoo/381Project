@@ -2,7 +2,7 @@
 <body>
     <title><%= result.name%></title>
     <H1><%= result.name%></H1>
-    <%if (result.photoMimetype.indexOf('image') !== -1) { %>
+    <%if (result.photo.buffer) { %>
         <img src="data:image/jpeg;base64,<%= result.photo%>" style="width: 90%; height: 60%; margin: auto; object-fit: contain;">
         <br>
     <% } %>
