@@ -94,9 +94,10 @@ app.get('/searchByKeyword', function (req, res) {
 				res.render('searchResult', {docs: docs})
 				// db.close()
 			} else {
-				res.writeHead(200, { "Content-Type": "application/json" })
-				res.write(JSON.stringify({status: 'no result found'}))
+				// res.writeHead(200, { "Content-Type": "application/json" })
+				// res.write(JSON.stringify({status: 'no result found'}))
 				// db.close()
+				res.render('noResult')
 			}
 			db.close()
 		})
