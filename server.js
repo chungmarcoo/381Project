@@ -297,6 +297,7 @@ app.get('/delete', function (req, res) {
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
 		findRestaurantsWithCriteria(db, o_id, function(restaurant) {
+			// console.log(restaurant[0].owner , req.session.username)
 			if (restaurant[0].owner == req.session.username) {
 				db.collection("restaurants").remove({ _id: o_id })
 				console.log('delete success!')
@@ -502,7 +503,8 @@ app.get('/create', function (req, res) {
 	if (!req.session.username && !req.session.authenticated) {
 		res.redirect('/login')
 	} else {
-		res.sendFile(__dirname + '/public/create.html')
+		// res.sendFile(__dirname + '/public/create.html')
+		res.render('create')
 	}
 })
 

@@ -3,10 +3,15 @@
 <body>
     <h1>Search result(s): </h1>
     <ol>
-
-        <% for (var i=0; i<docs.length; i++) { %>
-        <li><a href="/display?_id=<%=docs[i]._id%>">
-                <%=docs[i].name%></a></li>
+        <% if(docs.length == 0) { %>
+        <li>No result found</li> 
+        <% } else { %>
+                <% for( var i=0; i < docs.length; i++) { %>
+        <li>
+            <a href="/display?_id=<%=docs[i]._id%>">
+                <%=docs[i].name%></a>
+        </li>
+        <% } %>
         <% } %>
     </ol>
 </body>

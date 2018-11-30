@@ -1,6 +1,6 @@
 <html><head><title><%=result.name%></title></head>
-<body><H1>' + 'Edit ' + result.name + '</H1>
-<form action="/edit?_id=<%=result_id>" enctype="multipart/form-data" method="post">
+<body><H1>Edit <%result.name%></H1>
+<form action="/edit?_id=<%=result._id%>" enctype="multipart/form-data" method="post">
 name: <input type="text" name="name" value="<%=result.name%>"><br>
 borough: <input type="text" name="borough" value="<%=result.borough%>"><br>
 cuisine: <input type="text" name="cuisine" value="<%=result.cuisine%>"><br>
