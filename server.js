@@ -1,6 +1,3 @@
-//TODO: LIST:
-// Search 
-
 var express = require('express')
 var session = require('cookie-session')
 var bodyParser = require('body-parser')
@@ -13,7 +10,6 @@ var ObjectId = require('mongodb').ObjectID
 var mongourl = 'mongodb://project:project1234@ds245532.mlab.com:45532/chung_marco'
 var mongoose = require('mongoose')
 var Schema = mongoose.Schema
-var mime = require('mime-types')
 var fs = require('fs')
 var formidable = require('formidable')
 var util = require('util')
@@ -66,6 +62,46 @@ app.get('/', function (req, res) {
 	}
 })
 
+app.get('/search', function (req, res) {
+	res.render('search')	
+})
+
+app.get('/searchByKeyword', function (req, res) {
+	var keyword = req.query.keyword
+	var output = null
+	MongoClient.connect(mongourl, function (err, db) {
+		if (err) throw err
+		db.collection("restaurants").ensureIndex({"$**": "text" }, function(err, result) {
+			console.log(result);
+		})
+
+		db.collection("restaurants").find({ '$text': {'$search' : keyword, $caseSensitive: false} } ).toArray(function(err, docs) {
+			assert.equal(err, null);
+			console.log("Found the following records");
+			console.log(docs);
+			docs.forEach(function(doc) {
+				console.log('forEach', doc);
+			})
+			if (docs) {
+				res.writeHead(200, { "Content-Type": "text/html" })
+				res.write('<html><body>')
+				res.write('<h1>Search result(s): </h1>')
+				res.write('<ol>')
+				for (var i=0; i<docs.length; i++) {
+					res.write('<li><a href="/display?_id=' + docs[i]._id + '">' + docs[i].name + '</a></li>')
+				}
+				res.write('</ol>')
+				res.end('</body></html>')
+				db.close()
+			} else {
+				res.writeHead(200, { "Content-Type": "application/json" })
+				res.write(JSON.stringify({status: 'no result found'}))
+				db.close()
+			}
+		})
+	})
+})
+
 app.get('/read', function (req, res) {
 	console.log(req.session)
 	if (!req.session.authenticated) {
@@ -82,6 +118,7 @@ app.get('/read', function (req, res) {
 				res.write('<body><h1>Restaurants</h1>')
 				res.write('<h2>User: ' + req.session.username + '<a href="/logout"><button>Logout</button></a>' + '</h2>')
 				res.write('<h2>Showing ' + restaurants.length + ' document(s)</h2>')
+				res.write('<a href="/search"><button>Search</button></a>')
 				res.write('<a href="/create"><button>Create New Restaurant</button></a>')
 				res.write('<ol>')
 				for (var i in restaurants) {
@@ -188,7 +225,8 @@ app.get('/rate', function (req,res) {
 								res.write('<body><H1>Rate</H1>')
 								res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
 								res.write('<label for="rate">Score (1-10):</label>')
-								res.write('<input type="number" id="rate" name="rate" min="1" max="10">')
+								res.write('<input type="number" id="rate" name="rate" min="1" max="10" autocomplete="off" value="1" required>')
+								// res.write('<input type="number" id="rate" name="rate" min="1" max="10" value="1" required>')
 								res.write('<input type="submit" value="Rate">')
 								res.write('</form>')
 								res.end('</body></html>')
