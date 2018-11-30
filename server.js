@@ -516,7 +516,8 @@ app.post('/login', function (req, res) {
 		if (err) throw err
 		if (!usernameInput) {
 			console.log('invalid username or password')
-			res.redirect('/')
+			// res.redirect('/')
+			res.render('invalid')
 			return
 		}
 		db.collection("users").findOne(userInfo, function (err, result) {
@@ -528,7 +529,8 @@ app.post('/login', function (req, res) {
 					res.redirect('/read')
 				} else {
 					console.log('invalid username or password')
-					res.redirect('/')
+					// res.redirect('/')
+					res.render('invalid')
 				}
 			}
 			db.close()
