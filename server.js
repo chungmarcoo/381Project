@@ -92,12 +92,13 @@ app.get('/searchByKeyword', function (req, res) {
 				// res.end('</body></html>')
 
 				res.render('searchResult', {docs: docs})
-				db.close()
+				// db.close()
 			} else {
 				res.writeHead(200, { "Content-Type": "application/json" })
 				res.write(JSON.stringify({status: 'no result found'}))
-				db.close()
+				// db.close()
 			}
+			db.close()
 		})
 	})
 })
