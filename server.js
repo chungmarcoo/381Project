@@ -194,65 +194,36 @@ app.get('/display', function (req, res) {
 	})
 })
 
-app.get('/rate', function (req,res) {
+app.get("/rate", function (req, res) {
 	var _id = req.query._id
-	var ObjectId = require('mongodb').ObjectId
+	var ObjectId = require("mongodb").ObjectId
 	var o_id = new ObjectId(_id)
 	MongoClient.connect(mongourl, function (err, db) {
 		if (err) throw err
 		db.collection("restaurants").findOne({ _id: o_id }, function (err, result) {
-			if (!err) {
-				if (result) {
-					var gradesArr = result.grades
-					db.close()
-					if (gradesArr.length == 0) {
-						// res.writeHead(200, { "Content-Type": "text/html" })
-						// res.write('<html><head><title>Rate</title></head>')
-						// res.write('<body><H1>Rate</H1>')
-						// res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
-						// res.write('<label for="rate">Score (1-10):</label>')
-						// res.write('<input type="number" id="rate" name="rate" min="1" max="10">')
-						// res.write('<input type="submit" value="Rate">')
-						// res.write('</form>')
-						// res.end('</body></html>')
-						res.render('rate', {username: req.session.username, _id: _id})
-					}
-					else {
-						for (var i = 0; i < gradesArr.length; i++){
-							if (gradesArr[i].user == req.session.username) {
-								// res.writeHead(200, { "Content-Type": "text/html" })
-								// res.write('<html><head><title>' + 'rated before' + '</title></head>')
-								// res.write('<body><H1>' + 'You can only rate for once!' + '</H1>')
-								// res.write('<a href="/read"><button>Go back home</button></a>')	
-								// res.end('</body></html>')
-								res.render('ratedBefore')
-							} else {
-								// res.writeHead(200, { "Content-Type": "text/html" })
-								// res.write('<html><head><title>Rate</title></head>')
-								// res.write('<body><H1>Rate</H1>')
-								// res.write('<form action="/rate?_id=' + _id + '&rater=' + req.session.username + '"' + 'enctype="multipart/form-data" method="post">')
-								// res.write('<label for="rate">Score (1-10):</label>')
-								// res.write('<input type="number" id="rate" name="rate" min="1" max="10" autocomplete="off" value="1" required>')
-								// res.write('<input type="submit" value="Rate">')
-								// res.write('</form>')
-								// res.end('</body></html>')
-								res.render('rate', {username: req.session.username, _id: _id})
+				if (!err) {
+					if (result) {
+						var gradesArr = result.grades
+						var username = req.session.username
+						db.close()
+						if (gradesArr.length == 0) {
+							res.render("rate", { username: req.session.username, _id: _id })
+						} else {
+							for (var i = 0; i < gradesArr.length; i++) {
+								if (gradesArr[i].user == username) {
+									res.render("ratedBefore")
+								}
 							}
+							res.render("rate", { username: req.session.username, _id: _id })
 						}
+					} else {
+						console.log("Rate: No result")
 					}
- 				} else {
-					console.log('no result')
-					// res.writeHead(200, { "Content-Type": "text/html" })
-					// res.write('<html><head><title>' + 'no result' + '</title></head>')
-					// res.write('<body><H1>' + 'no result!' + '</H1>')
-					// res.write('<a href="/read"><button>Go back home</button></a>')
-					// res.end('</body></html>')
-					res.render('noResult')
 				}
-			}
-			db.close()
-		})
-	})
+				db.close()
+			})
+		}
+	)
 })
 
 app.post('/rate', function (req, res) {
