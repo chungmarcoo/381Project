@@ -585,7 +585,7 @@ app.post('/create', function (req, res) {
 	}
 })
 
-app.get('api/restaurant/name/:name', function (req, res) {
+app.get('/api/restaurant/name/:name', function (req, res) {
 	var criteria = {name : req.params.name}
 
 	MongoClient.connect(mongourl, function (err, db) {
