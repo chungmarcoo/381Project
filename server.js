@@ -585,7 +585,7 @@ app.post('/create', function (req, res) {
 	}
 })
 
-app.get('/name/:name', function (req, res) {
+app.get('api/name/:name', function (req, res) {
 	var criteria = {name : req.params.name}
 
 	MongoClient.connect(mongourl, function (err, db) {
@@ -601,7 +601,7 @@ app.get('/name/:name', function (req, res) {
 	})
 })
 
-app.get('/borough/:borough', function (req, res) {
+app.get('/api/borough/:borough', function (req, res) {
 	var criteria = {borough : req.params.borough}
 
 	MongoClient.connect(mongourl, function (err, db) {
@@ -617,7 +617,7 @@ app.get('/borough/:borough', function (req, res) {
 	})
 })
 
-app.get('/cuisine/:cuisine', function (req, res) {
+app.get('/api/cuisine/:cuisine', function (req, res) {
 	var criteria = {cuisine : req.params.cuisine}
 
 	MongoClient.connect(mongourl, function (err, db) {
