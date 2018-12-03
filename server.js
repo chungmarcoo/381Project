@@ -567,15 +567,19 @@ app.post('/create', function (req, res) {
 			var photoMimetype = ""
 			var photo = ""
 			var filepath = files.photo.path
-				
+
 			if (files.photo.type) {
 				photoMimetype = files.photo.type;
 			}
 			
+			if (files.type == 'application/pdf') {
+				photoMimetype = files.type
+				filepath = files.path
+			}
+
 			fs.readFile(filepath, function (err, data) {
 				photo = new Buffer(data).toString('base64')
 			})
-			
 
 			db.on('error', console.error.bind(console, 'connection error:'))
 			db.once('open', function (callback) {

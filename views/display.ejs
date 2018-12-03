@@ -2,7 +2,7 @@
 <body>
     <title><%= result.name%></title>
     <H1><%= result.name%></H1>
-    <%if (result.photo !== '') { %>
+    <%if (result.photoMimetype.startsWith('image') ) { %>
         <img src="data:image/jpeg;base64,<%= result.photo%>" style="width: 90%; height: 60%; margin: auto; object-fit: contain;">
         <br>
     <% } %>
