@@ -138,7 +138,11 @@ app.get('/read', function (req, res) {
 
 
 app.get('/display', function (req, res) {
-	var _id = req.query._id
+	if (!req.session.username) {
+		res.redirect('/')
+	}
+	else {
+		var _id = req.query._id
 	var ObjectId = require('mongodb').ObjectId
 	var o_id = new ObjectId(_id)
 	MongoClient.connect(mongourl, function (err, db) {
@@ -147,43 +151,7 @@ app.get('/display', function (req, res) {
 			if (!err) {
 				console.log('result: ', result)
 				if (result) {
-					// var photoMimetype = 'data:' + result.photoMimetype + ';base64,'
-					// var photo = new Buffer(result.photo, 'base64')
 					db.close()
-					// res.writeHead(200, { "Content-Type": "text/html" })
-					// res.write('<html><head><title>' + result.name + '</title></head>')
-					// res.write('<body><H1>' + result.name + '</H1>')
-					// if (result.photo) {
-					// 	res.write('<img src="data:image/jpeg;base64,' + result.photo + '" style="width: 90%; height: 60%; margin: auto; object-fit: contain;"/><br>')
-					// }
-					// res.write('<p>Borough: ' + result.borough + '</p>')
-					// res.write('<p>Cuisine: ' + result.cuisine + '</p>')
-					// res.write('<p>Street: ' + result.address[0].street + '</p>')
-					// res.write('<p>Building: ' + result.address[0].building + '</p>')
-					// res.write('<p>Zipcode: ' + result.address[0].zipcode + '</p>')
-					// if ((result.address[0].coord[0].lat !== null) || (result.address[0].coord[0].lon !== null)) {
-					// 	res.write('<p>GPS Lat: ' + result.address[0].coord[0].lat + '</p>')
-					// 	res.write('<p>GPS Lon: ' + result.address[0].coord[0].lon + '</p>')
-					// 	// res.write('<p><a href="/map?_id="' + result._id + '"><button>Google Map</button></a>')
-					// 	// console.log(result.address[0].coord[0].lat, result.address[0].coord[0].lon)
-					// 	res.write('<a href="/map?lat=' + result.address[0].coord[0].lat + '&lon=' + result.address[0].coord[0].lon + '"><button>Google Map</button></a>')
-					// }
-					// if(result.grades.length > 0) {
-					// 	res.write('<p>Rating:</p>')
-					// 	res.write('<ol>')
-					// 	for (var i=0; i < result.grades.length; i++){
-					// 		res.write('<li>' + result.grades[i].user + ' (' + result.grades[i].score + ')</li>')
-					// 	}
-					// 	res.write('</ol>')
-					// }
-					// res.write('<p>Created by: ' + result.owner + '</p>')
-					// res.write('<div style="display: flex; justify-content: space-around; width: 25%;">')
-					// res.write('<a href="/rate?_id=' + result._id + '&rater=' + req.session.username + '"><button>Rate</button></a>')
-					// res.write('<a href="/edit?_id=' + result._id + '"><button>Edit</button></a>')
-					// res.write('<a href="/delete?_id=' + result._id + '"><button>Delete</button></a>')
-					// res.write('<a href="/read"><button>Go back</button></a>')
-					// res.write('</div>')
-					// res.end('</body></html>')
 					res.render('display', {result: result, username: req.session.username})
 				} else {
 					console.log('no result')
@@ -192,6 +160,7 @@ app.get('/display', function (req, res) {
 			db.close()
 		})
 	})
+	}
 })
 
 app.get("/rate", function (req, res) {
